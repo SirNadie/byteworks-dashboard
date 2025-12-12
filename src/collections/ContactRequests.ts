@@ -16,28 +16,21 @@ export const ContactRequests: CollectionConfig = {
         delete: ({ req: { user } }) => Boolean(user),
     },
     hooks: {
-        beforeChange: [
-            ({ data, operation }) => {
-                // Anti-Spam: Honeypot check
-                if (operation === 'create' && data.bot_field) {
-                    throw new Error('Spam detected');
-                }
-                return data;
-            },
-        ],
         afterChange: [
-            async ({ doc, operation, req }) => {
+            async ({ doc, operation }) => {
                 // Only trigger on create (new contact requests)
                 if (operation !== 'create') return doc;
 
                 const webhookUrl = process.env.MAKE_WEBHOOK_URL;
 
                 if (!webhookUrl) {
+                    console.warn('MAKE_WEBHOOK_URL not configured - skipping webhook');
                     return doc;
                 }
 
                 try {
-                    const response = await fetch(webhookUrl, {
+                    // Fire and forget webhook to avoid holding up the request or causing DB errors
+                    fetch(webhookUrl, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -52,39 +45,10 @@ export const ContactRequests: CollectionConfig = {
                             status: doc.status,
                             createdAt: doc.createdAt,
                         }),
-                    });
-
-                    if (response.ok) {
-                        try {
-                            // Update status to sent using local API (prevents firing hooks again if configured correctly, but here we just update)
-                            // Note: updates trigger hooks, but our hook has "if (operation !== 'create') return" so it's safe.
-                            // @ts-ignore
-                            await req.payload.update({
-                                collection: 'contact-requests',
-                                id: doc.id,
-                                data: { automationStatus: 'sent' } as any,
-                                req
-                            });
-                        } catch (e) {
-                            console.error('Error updating status to sent:', e);
-                        }
-                    } else {
-                        throw new Error(`Make.com returned ${response.status}`);
-                    }
+                    }).catch(err => console.error('Make.com webhook failed async:', err));
 
                 } catch (error) {
-                    console.error('Failed to send webhook to Make:', error);
-                    try {
-                        // @ts-ignore
-                        await req.payload.update({
-                            collection: 'contact-requests',
-                            id: doc.id,
-                            data: { automationStatus: 'failed' } as any,
-                            req
-                        });
-                    } catch (e) {
-                        console.error('Error updating status to failed:', e);
-                    }
+                    console.error('Failed to initiate webhook:', error);
                 }
 
                 return doc;
@@ -130,29 +94,5 @@ export const ContactRequests: CollectionConfig = {
             ],
             defaultValue: 'new',
         },
-        // Anti-Spam & Automation Fields
-        {
-            name: 'automationStatus',
-            type: 'select',
-            options: [
-                { label: 'Pending', value: 'pending' },
-                { label: 'Sent to Make', value: 'sent' },
-                { label: 'Failed', value: 'failed' },
-            ],
-            defaultValue: 'pending',
-            admin: {
-                position: 'sidebar',
-                readOnly: true,
-                description: 'Status of the Make.com automation',
-            },
-        },
-        {
-            name: 'bot_field',
-            type: 'text',
-            admin: {
-                hidden: true, // Hide from admin UI
-            },
-        },
     ],
 }
-
