@@ -16,6 +16,17 @@ export default buildConfig({
         importMap: {
             baseDir: path.resolve(dirname),
         },
+        meta: {
+            titleSuffix: ' | ByteWorks Dashboard',
+            icons: [
+                {
+                    rel: 'icon',
+                    type: 'image/x-icon',
+                    url: '/favicon.ico',
+                },
+            ],
+            ogImage: '/logo-dark.png',
+        },
     },
     collections: [Users],
     editor: lexicalEditor(),

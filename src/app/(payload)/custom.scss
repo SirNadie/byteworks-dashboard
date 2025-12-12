@@ -1,1 +1,92 @@
-@type 'screen';
+/* ByteWorks Dashboard Custom Styles */
+
+/* Override Payload's CSS variables with ByteWorks brand colors */
+:root {
+    /* Primary brand color - Cyan/Teal */
+    --theme-elevation-0: #101C22;
+    --theme-elevation-50: #162029;
+    --theme-elevation-100: #1a2830;
+    --theme-elevation-150: #1e2f38;
+    --theme-elevation-200: #233640;
+    --theme-elevation-250: #283d48;
+    --theme-elevation-300: #2d4450;
+    --theme-elevation-350: #324b58;
+    --theme-elevation-400: #375260;
+    --theme-elevation-450: #3c5968;
+    --theme-elevation-500: #416070;
+
+    /* Accent colors */
+    --theme-success-50: #00BCD4;
+    --theme-success-100: #00BCD4;
+    --theme-success-150: #00ACC1;
+    --theme-success-200: #0097A7;
+    --theme-success-250: #00838F;
+    --theme-success-300: #006064;
+    --theme-success-350: #004D40;
+    --theme-success-400: #00BCD4;
+    --theme-success-450: #00BCD4;
+    --theme-success-500: #00BCD4;
+
+    /* Text colors */
+    --theme-text: #E0E0E0;
+}
+
+/* Dark theme overrides */
+[data-theme="dark"] {
+    --theme-bg: #101C22;
+    --theme-input-bg: #162029;
+}
+
+/* Custom button styling */
+.btn--style-primary {
+    background-color: #00BCD4 !important;
+    border-color: #00BCD4 !important;
+}
+
+.btn--style-primary:hover {
+    background-color: #0097A7 !important;
+    border-color: #0097A7 !important;
+}
+
+/* Sidebar active state */
+.nav-group__toggle--active,
+.nav__link--active {
+    background-color: rgba(0, 188, 212, 0.1) !important;
+    border-left-color: #00BCD4 !important;
+}
+
+/* Focus states */
+*:focus-visible {
+    outline-color: #00BCD4 !important;
+}
+
+/* Links */
+a:hover {
+    color: #00BCD4;
+}
+
+/* Custom logo in nav */
+.nav-header .graphic-logo {
+    content: url('/logo-dark.png');
+    height: 32px;
+    width: auto;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #101C22;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #00BCD4;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #0097A7;
+}
