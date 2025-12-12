@@ -25,7 +25,12 @@ export default buildConfig({
                     url: '/favicon.ico',
                 },
             ],
-
+        },
+        components: {
+            graphics: {
+                Logo: '/components/Logo#Logo',
+                Icon: '/components/Icon#Icon',
+            },
         },
     },
     collections: [Users],
