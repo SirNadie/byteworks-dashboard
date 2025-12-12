@@ -25,7 +25,7 @@ export default buildConfig({
                     url: '/favicon.ico',
                 },
             ],
-            ogImage: '/logo-dark.png',
+
         },
     },
     collections: [Users],
