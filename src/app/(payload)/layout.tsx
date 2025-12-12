@@ -1,13 +1,15 @@
+import config from '@/payload.config'
+import '@payloadcms/next/css'
+import { RootLayout } from '@payloadcms/next/layouts'
+import { importMap } from './admin/importMap'
 import React from 'react'
+
 import './custom.scss'
 
-/* This is the root layout for the Payload Admin Panel pages */
-const Layout = ({ children }: { children: React.ReactNode }) => {
-    return (
-        <div className="payload-layout">
-            {children}
-        </div>
-    )
-}
+const Layout = ({ children }: { children: React.ReactNode }) => (
+    <RootLayout config={config} importMap={importMap}>
+        {children}
+    </RootLayout>
+)
 
 export default Layout
