@@ -1,0 +1,37 @@
+{
+    "name": "byteworks-dashboard",
+    "version": "0.1.0",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "dev": "next dev",
+        "build": "next build",
+        "start": "next start",
+        "lint": "next lint",
+        "generate:types": "payload generate:types",
+        "payload": "payload"
+    },
+    "dependencies": {
+        "@payloadcms/db-postgres": "beta",
+        "@payloadcms/next": "beta",
+        "@payloadcms/richtext-lexical": "beta",
+        "@payloadcms/ui": "beta",
+        "graphql": "^16.8.1",
+        "next": "15.0.0-canary.104",
+        "payload": "beta",
+        "react": "^19.0.0-rc-06d0b89e-20240801",
+        "react-dom": "^19.0.0-rc-06d0b89e-20240801",
+        "sharp": "^0.33.5"
+    },
+    "devDependencies": {
+        "@types/node": "^20.14.11",
+        "@types/react": "npm:types-react@19.0.0-rc.0",
+        "@types/react-dom": "npm:types-react-dom@19.0.0-rc.0",
+        "eslint": "^8",
+        "eslint-config-next": "15.0.0-canary.104",
+        "typescript": "^5"
+    },
+    "engines": {
+        "node": ">=18.19.0"
+    }
+}
