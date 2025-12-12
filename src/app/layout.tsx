@@ -1,19 +1,19 @@
-import React from 'react'
-import './(payload)/custom.scss'
+import type { Metadata } from "next";
+import "./globals.css";
 
-export const metadata = {
-    title: 'ByteWorks Dashboard',
-    description: 'Agency client and billing management dashboard',
-}
+export const metadata: Metadata = {
+    title: "ByteWorks Dashboard",
+    description: "Byteworks Agency Dashboard",
+};
 
 export default function RootLayout({
     children,
-}: {
-    children: React.ReactNode
-}) {
+}: Readonly<{
+    children: React.ReactNode;
+}>) {
     return (
         <html lang="en">
             <body>{children}</body>
         </html>
-    )
+    );
 }
