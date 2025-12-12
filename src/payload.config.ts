@@ -27,7 +27,6 @@ export default buildConfig({
     ],
     editor: lexicalEditor(),
     secret: process.env.PAYLOAD_SECRET || '',
-    serverURL: process.env.NEXT_PUBLIC_SERVER_URL || '',
     cors: [process.env.NEXT_PUBLIC_SERVER_URL || ''].filter(Boolean),
     csrf: [process.env.NEXT_PUBLIC_SERVER_URL || ''].filter(Boolean),
     typescript: {
