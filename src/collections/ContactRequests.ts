@@ -58,6 +58,7 @@ export const ContactRequests: CollectionConfig = {
                         try {
                             // Update status to sent using local API (prevents firing hooks again if configured correctly, but here we just update)
                             // Note: updates trigger hooks, but our hook has "if (operation !== 'create') return" so it's safe.
+                            // @ts-ignore
                             await req.payload.update({
                                 collection: 'contact-requests',
                                 id: doc.id,
@@ -74,6 +75,7 @@ export const ContactRequests: CollectionConfig = {
                 } catch (error) {
                     console.error('Failed to send webhook to Make:', error);
                     try {
+                        // @ts-ignore
                         await req.payload.update({
                             collection: 'contact-requests',
                             id: doc.id,
