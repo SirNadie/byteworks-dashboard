@@ -3,6 +3,9 @@
 /.pnp
 .pnp.js
 .yarn/install-state.gz
+# package-lock.json # Keep this in git for deterministic builds
+yarn.lock
+pnpm-lock.yaml
 
 # testing
 /coverage
@@ -12,6 +15,9 @@
 /out/
 /build
 
+# production
+/dist
+
 # misc
 .DS_Store
 *.pem
@@ -20,9 +26,9 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+.pnpm-debug.log*
 
-# local env files
-# CRITICAL: Do not commit your private keys
+# local env files (never commit these)
 .env
 .env.local
 .env.development.local
@@ -38,14 +44,16 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Editors
+# editors
 .idea
 .vscode
 *.swp
 *.swo
+.history
+*.sublime-project
+*.sublime-workspace
 
 # Payload CMS Media (Local uploads)
-# Prevent uploading client PDFs or images to the repo
 media/
 src/media/
 public/media/
@@ -54,3 +62,6 @@ public/media/
 Thumbs.db
 ehthumbs.db
 Desktop.ini
+
+# Optional: Telemetry
+.next-telemetry.json
