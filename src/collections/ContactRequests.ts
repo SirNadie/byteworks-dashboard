@@ -15,6 +15,46 @@ export const ContactRequests: CollectionConfig = {
         update: ({ req: { user } }) => Boolean(user),
         delete: ({ req: { user } }) => Boolean(user),
     },
+    hooks: {
+        afterChange: [
+            async ({ doc, operation }) => {
+                // Only trigger on create (new contact requests)
+                if (operation !== 'create') return doc;
+
+                const webhookUrl = process.env.MAKE_WEBHOOK_URL;
+
+                if (!webhookUrl) {
+                    console.warn('MAKE_WEBHOOK_URL not configured - skipping webhook');
+                    return doc;
+                }
+
+                try {
+                    await fetch(webhookUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            id: doc.id,
+                            name: doc.name,
+                            email: doc.email,
+                            phone: doc.phone || '',
+                            message: doc.message,
+                            source: doc.source || 'unknown',
+                            status: doc.status,
+                            createdAt: doc.createdAt,
+                        }),
+                    });
+                    console.log(`Webhook sent for contact request: ${doc.email}`);
+                } catch (error) {
+                    console.error('Failed to send webhook to Make:', error);
+                    // Don't throw - we don't want to fail the request if webhook fails
+                }
+
+                return doc;
+            },
+        ],
+    },
     timestamps: true,
     fields: [
         {
@@ -56,3 +96,4 @@ export const ContactRequests: CollectionConfig = {
         },
     ],
 }
+
