@@ -62,7 +62,7 @@ export const ContactRequests: CollectionConfig = {
                             await req.payload.update({
                                 collection: 'contact-requests',
                                 id: doc.id,
-                                data: { automationStatus: 'sent' },
+                                data: { automationStatus: 'sent' } as any,
                                 req
                             });
                         } catch (e) {
@@ -79,7 +79,7 @@ export const ContactRequests: CollectionConfig = {
                         await req.payload.update({
                             collection: 'contact-requests',
                             id: doc.id,
-                            data: { automationStatus: 'failed' },
+                            data: { automationStatus: 'failed' } as any,
                             req
                         });
                     } catch (e) {
