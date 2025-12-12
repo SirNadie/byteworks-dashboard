@@ -29,8 +29,8 @@ export const ContactRequests: CollectionConfig = {
                 }
 
                 try {
-                    // Fire and forget webhook to avoid holding up the request or causing DB errors
-                    fetch(webhookUrl, {
+                    // MUST await in Serverless environment, otherwise request is cancelled
+                    await fetch(webhookUrl, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -45,10 +45,10 @@ export const ContactRequests: CollectionConfig = {
                             status: doc.status,
                             createdAt: doc.createdAt,
                         }),
-                    }).catch(err => console.error('Make.com webhook failed async:', err));
-
+                    });
                 } catch (error) {
-                    console.error('Failed to initiate webhook:', error);
+                    console.error('Failed to send webhook to Make:', error);
+                    // Swallow error to prevent failing the user request
                 }
 
                 return doc;
