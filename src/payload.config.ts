@@ -6,11 +6,25 @@ import { fileURLToPath } from 'url'
 import sharp from 'sharp'
 
 import { Users } from './collections/Users'
+import { Clients } from './collections/Clients'
+import { Invoices } from './collections/Invoices'
+import { ContactRequests } from './collections/ContactRequests'
+import { Quotes } from './collections/Quotes'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
 export default buildConfig({
+    cors: [
+        // Production - ByteWorks Agency Website
+        'https://byteworksagency.com',
+        'https://www.byteworksagency.com',
+        // Environment variable override
+        process.env.AGENCY_WEBSITE_URL,
+        // Local development
+        'http://localhost:3000',
+        'http://localhost:4321',
+    ].filter(Boolean) as string[],
     admin: {
         user: Users.slug,
         importMap: {
@@ -33,7 +47,7 @@ export default buildConfig({
             },
         },
     },
-    collections: [Users],
+    collections: [Clients, Quotes, Invoices, Users, ContactRequests],
     editor: lexicalEditor(),
     secret: process.env.PAYLOAD_SECRET || '',
     typescript: {
