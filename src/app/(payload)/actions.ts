@@ -2,11 +2,9 @@
 
 import config from '@/payload.config'
 import { getPayload } from 'payload'
+import type { ServerFunctionClient } from 'payload'
 
-export async function handleServerFunctions(args: {
-    name: string
-    args: unknown[]
-}): Promise<unknown> {
+export const handleServerFunctions: ServerFunctionClient = async function (args) {
     const payload = await getPayload({ config })
 
     // Access the server functions from the payload instance
@@ -14,7 +12,7 @@ export async function handleServerFunctions(args: {
     const fn = serverFunctions[args.name]
 
     if (typeof fn === 'function') {
-        return fn(...args.args)
+        return fn(args.args)
     }
 
     throw new Error(`Server function "${args.name}" not found`)
