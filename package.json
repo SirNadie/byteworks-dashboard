@@ -12,6 +12,7 @@
         "payload": "payload"
     },
     "dependencies": {
+        "@google-analytics/data": "^5.2.1",
         "@payloadcms/db-postgres": "^3.68.3",
         "@payloadcms/next": "^3.68.3",
         "@payloadcms/richtext-lexical": "^3.68.3",

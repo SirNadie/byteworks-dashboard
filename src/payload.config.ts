@@ -11,6 +11,8 @@ import { Invoices } from './collections/Invoices'
 import { ContactRequests } from './collections/ContactRequests'
 import { Quotes } from './collections/Quotes'
 
+import { Analytics } from './globals/Analytics'
+
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
@@ -48,6 +50,7 @@ export default buildConfig({
         },
     },
     collections: [Clients, Quotes, Invoices, Users, ContactRequests],
+    globals: [Analytics],
     editor: lexicalEditor(),
     secret: process.env.PAYLOAD_SECRET || '',
     typescript: {
