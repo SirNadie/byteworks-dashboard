@@ -7,7 +7,7 @@ export const Analytics: GlobalConfig = {
         group: 'Others',
         components: {
             views: {
-                Edit: {
+                edit: {
                     Component: '/components/Dashboard#default',
                 },
             },
