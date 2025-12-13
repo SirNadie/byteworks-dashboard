@@ -1,85 +1,94 @@
-/* ByteWorks Dashboard Custom Styles */
+/* ByteWorks Dashboard Theme (Safe Revision) */
 
-/* Override Payload's CSS variables with ByteWorks brand colors */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* 
+   STRATEGY: Only override CSS Variables directly.
+   Do NOT touch layout/positioning/flexbox of core elements.
+*/
+
 :root {
-    /* Primary brand color - Cyan/Teal */
-    --theme-elevation-0: #101C22;
-    --theme-elevation-50: #162029;
-    --theme-elevation-100: #1a2830;
-    --theme-elevation-150: #1e2f38;
-    --theme-elevation-200: #233640;
-    --theme-elevation-250: #283d48;
-    --theme-elevation-300: #2d4450;
-    --theme-elevation-350: #324b58;
-    --theme-elevation-400: #375260;
-    --theme-elevation-450: #3c5968;
-    --theme-elevation-500: #416070;
+    /* Brand Colors */
+    --bw-primary: #06B6D4;
 
-    /* Accent colors */
-    --theme-success-50: #00BCD4;
-    --theme-success-100: #00BCD4;
-    --theme-success-150: #00ACC1;
-    --theme-success-200: #0097A7;
-    --theme-success-250: #00838F;
-    --theme-success-300: #006064;
-    --theme-success-350: #004D40;
-    --theme-success-400: #00BCD4;
-    --theme-success-450: #00BCD4;
-    --theme-success-500: #00BCD4;
+    /* Modern Dark Palette (Slate) */
+    --theme-bg: #020617;
+    /* Deepest background */
+    --theme-elevation-0: #0f172a;
+    /* Sidebar / Header */
+    --theme-elevation-50: #1e293b;
+    /* Cards */
+    --theme-elevation-100: #334155;
+    /* Modals / Hovers */
 
-    /* Text colors */
-    --theme-text: #E0E0E0;
+    --theme-text: #f8fafc;
+    --theme-text-muted: #94a3b8;
+
+    --font-body: 'Inter', sans-serif;
+
+    /* Input Fields */
+    --theme-input-bg: #020617;
+    --theme-input-border: #334155;
+
+    /* Success/Action Colors */
+    --theme-success-500: var(--bw-primary);
 }
 
-/* Dark theme overrides */
-[data-theme="dark"] {
-    --theme-bg: #101C22;
-    --theme-input-bg: #162029;
+/* Force Font Globally */
+body,
+html {
+    font-family: 'Inter', sans-serif;
 }
 
-/* Custom button styling */
+/* 
+   LOGIN PAGE SPECIFIC
+   It's safe to style this heavily as it's an isolated template 
+*/
+[class*="template-default"] {
+    background: #020617 !important;
+}
+
+[id*="login"] {
+    background-color: #0f172a !important;
+    border: 1px solid #1e293b !important;
+    border-radius: 16px !important;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Button Styling (Safe) */
 .btn--style-primary {
-    background-color: #00BCD4 !important;
-    border-color: #00BCD4 !important;
+    background-color: var(--bw-primary) !important;
+    border: none !important;
+    border-radius: 6px !important;
+    font-weight: 600 !important;
+    color: white !important;
 }
 
 .btn--style-primary:hover {
-    background-color: #0097A7 !important;
-    border-color: #0097A7 !important;
+    filter: brightness(1.1);
 }
 
-/* Sidebar active state */
-.nav-group__toggle--active,
-.nav__link--active {
-    background-color: rgba(0, 188, 212, 0.1) !important;
-    border-left-color: #00BCD4 !important;
+/* 
+   WEBSITE STATS WIDGET ONLY 
+   Targeting the specific dashboard component we built
+*/
+
+/* Hide unwanted header elements ONLY on the Analytics view if possible.
+   Since we can't condition CSS on URL, we leave the header alone to avoid breaking layout.
+   Instead, we just style our widget better.
+*/
+
+/* Hiding the Save button globally is risky, but safe for dashboard if it's the only page using .form-submit.
+   Better to just leave it if it causes layout breakages. 
+   Let's just clean up the "Collection List" cards.
+*/
+
+.card {
+    border: 1px solid #1e293b !important;
+    border-radius: 8px !important;
+    background-color: #1e293b !important;
 }
 
-/* Focus states */
-*:focus-visible {
-    outline-color: #00BCD4 !important;
-}
-
-/* Links hover effect */
-a:hover {
-    color: #00BCD4;
-}
-
-/* Scrollbar styling */
-::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-}
-
-::-webkit-scrollbar-track {
-    background: #101C22;
-}
-
-::-webkit-scrollbar-thumb {
-    background: #00BCD4;
-    border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: #0097A7;
+.card:hover {
+    border-color: var(--bw-primary) !important;
 }

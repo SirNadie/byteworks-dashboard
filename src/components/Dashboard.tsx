@@ -58,6 +58,22 @@ const Dashboard: React.FC = () => {
                 </select>
             </div>
 
+            <style>{`
+                /* Hide Payload Default Actions for this view only */
+                .form-submit, 
+                .doc-header__controls,
+                .doc-controls,
+                .app-header__step-nav,
+                .doc-tabs__tabs {
+                    display: none !important;
+                }
+                
+                /* Adjust padding since header is gone */
+                .gutter {
+                    padding-top: 20px !important;
+                }
+            `}</style>
+
             <div style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
