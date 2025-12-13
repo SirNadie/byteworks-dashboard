@@ -139,6 +139,7 @@ export interface Client {
   phone?: string | null;
   company?: string | null;
   website?: string | null;
+  source?: string | null;
   status?: ('lead' | 'active' | 'inactive') | null;
   notes?: string | null;
   updatedAt: string;
@@ -365,6 +366,7 @@ export interface ClientsSelect<T extends boolean = true> {
   phone?: T;
   company?: T;
   website?: T;
+  source?: T;
   status?: T;
   notes?: T;
   updatedAt?: T;

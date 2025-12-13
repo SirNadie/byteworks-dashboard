@@ -31,6 +31,10 @@ export const Clients: CollectionConfig = {
             type: 'text',
         },
         {
+            name: 'source',
+            type: 'text',
+        },
+        {
             name: 'status',
             type: 'select',
             options: [
