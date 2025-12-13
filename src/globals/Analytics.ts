@@ -5,13 +5,6 @@ export const Analytics: GlobalConfig = {
     label: 'Website Stats',
     admin: {
         group: 'Others',
-        components: {
-            views: {
-                edit: {
-                    Component: '/components/Dashboard#default',
-                },
-            },
-        },
     },
     fields: [
         {
