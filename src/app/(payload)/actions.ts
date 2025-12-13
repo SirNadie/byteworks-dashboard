@@ -15,5 +15,11 @@ export const handleServerFunctions: ServerFunctionClient = async function (args)
         return fn(args.args)
     }
 
+    // Suppress error for known missing internal function
+    if (args.name === 'form-state') {
+        console.warn('Suppressing missing server function: form-state')
+        return { state: undefined } // Return minimal object to prevent destructuring errors
+    }
+
     throw new Error(`Server function "${args.name}" not found`)
 }

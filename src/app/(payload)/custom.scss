@@ -40,6 +40,11 @@ html {
     font-family: 'Inter', sans-serif;
 }
 
+/* HIDE API/EDIT TABS GLOBALLY for cleaner UI */
+.doc-tabs__tabs {
+    display: none !important;
+}
+
 /* 
    LOGIN PAGE SPECIFIC
    It's safe to style this heavily as it's an isolated template 

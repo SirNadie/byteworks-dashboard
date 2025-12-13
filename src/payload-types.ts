@@ -262,12 +262,10 @@ export interface ContactRequest {
   name: string;
   email: string;
   phone?: string | null;
+  company?: string | null;
   message: string;
-  /**
-   * Where the request came from (e.g., website, referral)
-   */
   source?: string | null;
-  status?: ('new' | 'contacted' | 'converted' | 'closed') | null;
+  status?: ('new' | 'converted') | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -453,6 +451,7 @@ export interface ContactRequestsSelect<T extends boolean = true> {
   name?: T;
   email?: T;
   phone?: T;
+  company?: T;
   message?: T;
   source?: T;
   status?: T;
