@@ -10,6 +10,7 @@ import { Clients } from './collections/Clients'
 import { Invoices } from './collections/Invoices'
 import { ContactRequests } from './collections/ContactRequests'
 import { Quotes } from './collections/Quotes'
+import { Services } from './collections/Services'
 
 import { Analytics } from './globals/Analytics'
 
@@ -49,7 +50,7 @@ export default buildConfig({
             },
         },
     },
-    collections: [Clients, Quotes, Invoices, Users, ContactRequests],
+    collections: [Clients, Quotes, Invoices, Services, Users, ContactRequests],
     globals: [Analytics],
     editor: lexicalEditor(),
     secret: process.env.PAYLOAD_SECRET || '',

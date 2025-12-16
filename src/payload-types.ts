@@ -70,6 +70,7 @@ export interface Config {
     clients: Client;
     quotes: Quote;
     invoices: Invoice;
+    services: Service;
     users: User;
     'contact-requests': ContactRequest;
     'payload-kv': PayloadKv;
@@ -82,6 +83,7 @@ export interface Config {
     clients: ClientsSelect<false> | ClientsSelect<true>;
     quotes: QuotesSelect<false> | QuotesSelect<true>;
     invoices: InvoicesSelect<false> | InvoicesSelect<true>;
+    services: ServicesSelect<false> | ServicesSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     'contact-requests': ContactRequestsSelect<false> | ContactRequestsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
@@ -155,47 +157,68 @@ export interface Quote {
   id: number;
   quoteNumber: string;
   client: number | Client;
+  status?: ('draft' | 'sent' | 'accepted' | 'rejected' | 'expired') | null;
   /**
    * Project or service title
    */
   title: string;
-  description?: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  } | null;
   items?:
     | {
+        service?: (number | null) | Service;
         description: string;
-        quantity?: number | null;
+        quantity: number;
         unitPrice: number;
         id?: string | null;
       }[]
     | null;
   /**
-   * Total quote amount
+   * Apply a discount to this quote
    */
-  total?: number | null;
-  currency?: ('usd' | 'eur') | null;
-  status?: ('draft' | 'sent' | 'accepted' | 'rejected' | 'expired') | null;
+  discountType?: ('none' | 'percentage' | 'fixed') | null;
   /**
-   * Quote expiration date
+   * Enter discount value (percentage or fixed amount)
+   */
+  discountValue?: number | null;
+  subtotal?: number | null;
+  discountAmount?: number | null;
+  total?: number | null;
+  currency?: ('usd' | 'ttd') | null;
+  /**
+   * Quote expiration date (auto-set to 15 days from creation)
    */
   validUntil?: string | null;
   /**
    * Internal notes (not visible to client)
    */
   notes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Reusable services/items for quotes
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "services".
+ */
+export interface Service {
+  id: number;
+  /**
+   * Service or item name (e.g., "Website Design", "Monthly Maintenance")
+   */
+  name: string;
+  /**
+   * Detailed description of the service
+   */
+  description?: string | null;
+  /**
+   * Default price for this service (can be modified per quote)
+   */
+  defaultPrice: number;
+  category?: ('web-development' | 'design' | 'maintenance' | 'consulting' | 'other') | null;
+  /**
+   * Only active services can be added to new quotes
+   */
+  isActive?: boolean | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -307,6 +330,10 @@ export interface PayloadLockedDocument {
         value: number | Invoice;
       } | null)
     | ({
+        relationTo: 'services';
+        value: number | Service;
+      } | null)
+    | ({
         relationTo: 'users';
         value: number | User;
       } | null)
@@ -379,19 +406,23 @@ export interface ClientsSelect<T extends boolean = true> {
 export interface QuotesSelect<T extends boolean = true> {
   quoteNumber?: T;
   client?: T;
+  status?: T;
   title?: T;
-  description?: T;
   items?:
     | T
     | {
+        service?: T;
         description?: T;
         quantity?: T;
         unitPrice?: T;
         id?: T;
       };
+  discountType?: T;
+  discountValue?: T;
+  subtotal?: T;
+  discountAmount?: T;
   total?: T;
   currency?: T;
-  status?: T;
   validUntil?: T;
   notes?: T;
   updatedAt?: T;
@@ -418,6 +449,19 @@ export interface InvoicesSelect<T extends boolean = true> {
         unitPrice?: T;
         id?: T;
       };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "services_select".
+ */
+export interface ServicesSelect<T extends boolean = true> {
+  name?: T;
+  description?: T;
+  defaultPrice?: T;
+  category?: T;
+  isActive?: T;
   updatedAt?: T;
   createdAt?: T;
 }

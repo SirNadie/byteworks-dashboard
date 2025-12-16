@@ -9,6 +9,17 @@ export const Clients: CollectionConfig = {
     },
     fields: [
         {
+            name: 'generateQuote',
+            type: 'ui',
+            admin: {
+                components: {
+                    Field: '/components/GenerateQuoteButton#GenerateQuoteButton',
+                },
+                // Only show on edit (when client already exists)
+                condition: (data) => Boolean(data?.id),
+            },
+        },
+        {
             name: 'name',
             type: 'text',
             required: true,
