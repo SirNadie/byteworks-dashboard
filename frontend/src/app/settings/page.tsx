@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { api, User } from '@/lib/api';
+import { api, User } from '@/lib/apiClient';
 import { useRouter } from 'next/navigation';
 
 export default function SettingsPage() {
