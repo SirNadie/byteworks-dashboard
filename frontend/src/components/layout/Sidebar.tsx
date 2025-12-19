@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { api } from '@/lib/apiClient';
+import { api } from '../../lib/apiClient';
 
 interface SidebarProps {
     isOpen: boolean;

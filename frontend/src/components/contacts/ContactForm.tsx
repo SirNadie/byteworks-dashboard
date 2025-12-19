@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Contact, ContactCreate, ContactUpdate } from '@/lib/apiClient';
+import { Contact, ContactCreate, ContactUpdate } from '../../lib/apiClient';
 
 interface ContactFormProps {
     isOpen: boolean;

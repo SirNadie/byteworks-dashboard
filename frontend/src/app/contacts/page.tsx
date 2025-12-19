@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { api, Contact, ContactCreate, ContactUpdate } from '@/lib/apiClient';
+import { api, Contact, ContactCreate, ContactUpdate } from '../../lib/apiClient';
 import ContactForm from '@/components/contacts/ContactForm';
 
 export default function ContactsPage() {

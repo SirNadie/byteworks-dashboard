@@ -3,7 +3,7 @@
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Sidebar from '@/components/layout/Sidebar';
-import { api } from '@/lib/apiClient';
+import { api } from '../../lib/apiClient';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
