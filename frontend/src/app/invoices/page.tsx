@@ -1,0 +1,1 @@
+export default function invoicesPage() { return (<div><h1 className='text-3xl font-display font-bold capitalize text-gray-900 dark:text-white'>invoices</h1><p className='text-gray-500 mt-2'>This module is under construction.</p></div>); }

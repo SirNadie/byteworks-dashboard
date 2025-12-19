@@ -1,67 +1,171 @@
-# dependencies
-/node_modules
-/.pnp
-.pnp.js
-.yarn/install-state.gz
-# package-lock.json # Keep this in git for deterministic builds
-yarn.lock
-pnpm-lock.yaml
+# ========================================
+# ENVIRONMENT & SECRETS (CRITICAL)
+# ========================================
+.env
+.env.*
+!.env.example
+*.env
+.envrc
+.secret
+*.secret
+secrets/
+config.local.*
 
-# testing
-/coverage
+# Database credentials
+*.db
+*.sqlite
+*.sqlite3
+database.ini
+db.ini
 
-# next.js
-/.next/
-/out/
-/build
-
-# production
-/dist
-
-# misc
-.DS_Store
+# API Keys & Tokens
 *.pem
+*.key
+*.crt
+*.p12
+*.pfx
+service-account*.json
 
-# debug
+# Google Cloud / Drive credentials
+credentials.json
+token.json
+token.pickle
+*.json.bak
+client_secret*.json
+*-service-account.json
+
+# JWT secrets
+jwt_secret*
+private_key*
+public_key*
+
+# ========================================
+# PYTHON
+# ========================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+env.bak/
+venv.bak/
+.virtualenv/
+virtualenv/
+
+# ========================================
+# TESTING & COVERAGE
+# ========================================
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+pytest_cache/
+
+# ========================================
+# IDE & EDITORS
+# ========================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+.project
+.pydevproject
+.settings/
+*.code-workspace
+
+# ========================================
+# OS GENERATED
+# ========================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ========================================
+# LOGS & TEMP FILES
+# ========================================
+*.log
+*.logs
+logs/
+log/
+*.tmp
+*.temp
+tmp/
+temp/
+*.bak
+*.backup
+*.old
+
+# ========================================
+# NODE (if using any JS tools)
+# ========================================
+node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-.pnpm-debug.log*
+package-lock.json
+yarn.lock
 
-# local env files (never commit these)
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-*.env
-*.env.*
+# ========================================
+# PROJECT SPECIFIC
+# ========================================
+# Alembic versions (keep tracked but ignore generated)
+# alembic/versions/*.pyc
 
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-
-# editors
-.idea
-.vscode
-*.swp
-*.swo
-.history
-*.sublime-project
-*.sublime-workspace
-
-# Payload CMS Media (Local uploads)
+# Uploaded files (should be in cloud storage)
+uploads/
 media/
-src/media/
-public/media/
+static/uploads/
 
-# OS Generated
-Thumbs.db
-ehthumbs.db
-Desktop.ini
+# PDF exports
+exports/
+*.pdf
 
-# Optional: Telemetry
-.next-telemetry.json
+# Local overrides
+local_settings.py
+settings_local.py

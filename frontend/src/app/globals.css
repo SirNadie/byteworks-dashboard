@@ -1,0 +1,295 @@
+@import "tailwindcss";
+
+@theme {
+  /* Marca (Branding) */
+  --color-brand: #06b6d4;
+  --color-brand-soft: #22d3ee;
+  --color-brand-strong: #0891b2;
+  --color-primary: #00BCD4;
+  --color-secondary: #0097A7;
+
+  /* Fondos Premium */
+  --color-background-light: #F1F5F9;
+  /* Slate-100: Más profundidad que blanco */
+  --color-background-dark: #0f172a;
+  /* Slate-950: Dark mode profundo */
+  --color-card-dark: #1e293b;
+  /* Slate-800 */
+  --color-border-dark: #334155;
+  /* Slate-700 */
+
+  /* Reemplazar Gray genérico por Slate premium */
+  --color-gray-50: #f8fafc;
+  --color-gray-100: #f1f5f9;
+  --color-gray-200: #e2e8f0;
+  --color-gray-300: #cbd5e1;
+  --color-gray-400: #94a3b8;
+  --color-gray-500: #64748b;
+  --color-gray-600: #475569;
+  --color-gray-700: #334155;
+  --color-gray-800: #1e293b;
+  --color-gray-900: #0f172a;
+  --color-gray-950: #020617;
+
+  /* Fuentes */
+  --font-display: Manrope, system-ui, sans-serif;
+  --font-sans: Inter, system-ui, sans-serif;
+
+  /* Animaciones */
+  --animate-in: fade-in 0.2s ease-out;
+  --animate-out: fade-out 0.2s ease-in;
+}
+
+/* Configuración de Modo Oscuro y Variables CSS nativas */
+:root {
+  --background: #F1F5F9;
+  /* Slate-100 */
+  --foreground: #0F172A;
+  /* Slate-900 */
+}
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+html.dark {
+  --background: #0f172a;
+  --foreground: #f8fafc;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: var(--font-inter), sans-serif;
+  -webkit-font-smoothing: antialiased;
+  /* Texto más nítido */
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-manrope), sans-serif;
+}
+
+/* =============================================
+   COMPONENTS
+   ============================================= */
+
+@layer components {
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 rounded;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-400;
+  }
+
+  .dark ::-webkit-scrollbar-thumb {
+    @apply bg-gray-600;
+  }
+
+  .dark ::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-500;
+  }
+
+  /* Navigation active state */
+  .nav-item.active {
+    @apply !bg-brand !text-white;
+  }
+
+  .nav-item.active span {
+    @apply font-bold;
+  }
+
+  /* Material Symbols */
+  .material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  }
+
+  .material-symbols-outlined.fill-1 {
+    font-variation-settings: 'FILL' 1;
+  }
+
+  /* Buttons */
+  .btn {
+    @apply inline-flex items-center justify-center px-5 py-2.5 rounded-lg font-semibold transition-all cursor-pointer;
+  }
+
+  .btn-primary {
+    @apply bg-brand text-white hover:bg-brand-strong;
+  }
+
+  .btn-primary:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);
+  }
+
+  .btn-secondary {
+    @apply bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-border-dark dark:text-gray-200 dark:hover:bg-gray-700;
+  }
+
+  .btn-danger {
+    @apply bg-red-100 text-red-600 hover:bg-red-200;
+  }
+
+  /* Data Table */
+  .data-table {
+    @apply w-full border-collapse;
+  }
+
+  .data-table th {
+    @apply text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider text-gray-500 border-b border-gray-200 dark:border-border-dark dark:text-gray-400;
+  }
+
+  .data-table td {
+    @apply px-4 py-4 border-b border-gray-100 dark:border-border-dark;
+  }
+
+  .data-table tr:hover td {
+    @apply bg-gray-50 dark:bg-border-dark/50;
+  }
+
+  /* Badges */
+  .badge {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold;
+  }
+
+  .badge-new {
+    @apply bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400;
+  }
+
+  .badge-contacted {
+    @apply bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400;
+  }
+
+  .badge-qualified {
+    @apply bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400;
+  }
+
+  .badge-converted {
+    @apply bg-green-500 text-white;
+  }
+
+  .badge-lost {
+    @apply bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400;
+  }
+
+  .badge-draft {
+    @apply bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400;
+  }
+
+  .badge-sent {
+    @apply bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400;
+  }
+
+  .badge-accepted {
+    @apply bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400;
+  }
+
+  .badge-rejected {
+    @apply bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400;
+  }
+
+  .badge-pending {
+    @apply bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400;
+  }
+
+  .badge-paid {
+    @apply bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400;
+  }
+
+  .badge-overdue {
+    @apply bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400;
+  }
+
+  /* Card hover effect */
+  .card-hover {
+    @apply transition-all duration-200;
+  }
+
+  .card-hover:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.15);
+  }
+
+  /* Toast notifications */
+  .toast {
+    @apply fixed bottom-5 right-5 px-6 py-4 rounded-xl text-white font-medium z-50;
+    animation: slideIn 0.3s ease-out;
+  }
+
+  .toast.success {
+    @apply bg-green-500;
+  }
+
+  .toast.error {
+    @apply bg-red-500;
+  }
+
+  .toast.info {
+    @apply bg-brand;
+  }
+
+  /* Modal animation */
+  .modal-content {
+    animation: modalIn 0.2s ease-out;
+  }
+}
+
+/* =============================================
+   ANIMATIONS
+   ============================================= */
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes modalIn {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* =============================================
+   ACCESSIBILITY
+   ============================================= */
+
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
