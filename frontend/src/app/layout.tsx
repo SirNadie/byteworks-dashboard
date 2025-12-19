@@ -7,8 +7,27 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const manrope = Manrope({ subsets: ["latin"], variable: "--font-manrope" });
 
 export const metadata: Metadata = {
-  title: "ByteWorks Dashboard",
-  description: "Agency Management System",
+  title: {
+    default: "ByteWorks Dashboard",
+    template: "%s | ByteWorks Dashboard",
+  },
+  description: "CRM and Agency Management System - Manage contacts, quotes, invoices, and analytics for your digital agency.",
+  keywords: ["CRM", "dashboard", "agency management", "quotes", "invoices", "contacts"],
+  authors: [{ name: "ByteWorks Agency" }],
+  creator: "ByteWorks Agency",
+  metadataBase: new URL("https://portal.byteworksagency.com"),
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: "https://portal.byteworksagency.com",
+    siteName: "ByteWorks Dashboard",
+    title: "ByteWorks Dashboard",
+    description: "CRM and Agency Management System for digital agencies.",
+  },
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 export default function RootLayout({
