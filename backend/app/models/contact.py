@@ -24,12 +24,24 @@ class ContactSource(str, PyEnum):
 
 
 class ContactStatus(str, PyEnum):
-    """Contact status in the sales pipeline."""
-    NEW = "new"
-    CONTACTED = "contacted"
-    QUALIFIED = "qualified"
-    CONVERTED = "converted"
-    LOST = "lost"
+    """Contact status in the sales pipeline.
+    
+    Note: Enum names must match exactly what's stored in PostgreSQL.
+    Original values are uppercase, new values (drafting, quoted) are lowercase.
+    """
+    NEW = "NEW"
+    drafting = "drafting"  # Quote creation in progress
+    quoted = "quoted"      # Quote sent, waiting for response
+    CONTACTED = "CONTACTED"
+    QUALIFIED = "QUALIFIED"
+    CONVERTED = "CONVERTED"
+    LOST = "LOST"
+
+
+class ContactMethod(str, PyEnum):
+    """Preferred contact method."""
+    WHATSAPP = "whatsapp"
+    EMAIL = "email"
 
 
 class Contact(Base):
@@ -76,6 +88,12 @@ class Contact(Base):
         default=ContactStatus.NEW,
         nullable=False,
         index=True
+    )
+    
+    contact_method: Mapped[ContactMethod | None] = mapped_column(
+        Enum(ContactMethod),
+        nullable=True,
+        default=None
     )
     
     notes: Mapped[str | None] = mapped_column(

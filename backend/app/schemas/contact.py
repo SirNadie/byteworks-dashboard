@@ -3,12 +3,12 @@ Pydantic schemas for Contact API validation.
 """
 
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field
 
-from ..models.contact import ContactSource, ContactStatus
+from ..models.contact import ContactSource, ContactStatus, ContactMethod
 
 
 class ContactBase(BaseModel):
@@ -24,6 +24,7 @@ class ContactBase(BaseModel):
 class ContactCreate(ContactBase):
     """Schema for creating a new contact."""
     status: ContactStatus = ContactStatus.NEW
+    contact_method: Optional[ContactMethod] = None
 
 
 class ContactUpdate(BaseModel):
@@ -34,6 +35,7 @@ class ContactUpdate(BaseModel):
     company: Optional[str] = Field(None, max_length=100)
     source: Optional[ContactSource] = None
     status: Optional[ContactStatus] = None
+    contact_method: Optional[ContactMethod] = None
     notes: Optional[str] = None
 
 
@@ -41,6 +43,7 @@ class ContactResponse(ContactBase):
     """Schema for contact response data."""
     id: UUID
     status: ContactStatus
+    contact_method: Optional[ContactMethod] = None
     created_at: datetime
     updated_at: datetime
     
@@ -63,5 +66,5 @@ class PublicContactRequest(BaseModel):
     email: EmailStr
     phone: Optional[str] = None
     message: Optional[str] = None
+    contact_method: Optional[Literal["whatsapp", "email"]] = None
     bot_field: Optional[str] = None  # Honeypot
-

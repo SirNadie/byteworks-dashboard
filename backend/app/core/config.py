@@ -48,10 +48,16 @@ class Settings(BaseSettings):
     # Integrations
     make_webhook_url: str = ""
     
+    # Discord Webhooks
+    discord_leads_webhook: str = ""
+    discord_quotes_webhook: str = ""
+    
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        if self.make_webhook_url:
-            print(f"✅ Make Webhook configured: ...{self.make_webhook_url[-10:]}")
+        if self.discord_leads_webhook:
+            print(f"✅ Discord Leads Webhook configured")
+        if self.discord_quotes_webhook:
+            print(f"✅ Discord Quotes Webhook configured")
 
 
 @lru_cache()

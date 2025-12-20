@@ -197,6 +197,7 @@ async def create_public_contact(
 ):
     """
     Create a new contact from public website (honeypot protected).
+    Sends notification to Discord.
     """
     if contact_data.bot_field:
         # Honeypot triggered, return fake success
@@ -216,6 +217,15 @@ async def create_public_contact(
             notes=None
         )
 
+    # Determine contact method from data
+    from ...models.contact import ContactMethod
+    contact_method = None
+    if hasattr(contact_data, 'contact_method') and contact_data.contact_method:
+        try:
+            contact_method = ContactMethod(contact_data.contact_method)
+        except ValueError:
+            pass
+
     # Manual mapping since schemas differ
     new_contact = Contact(
         name=contact_data.name,
@@ -223,33 +233,28 @@ async def create_public_contact(
         phone=contact_data.phone,
         notes=contact_data.message,
         source=ContactSource.WEB_FORM,
-        status=ContactStatus.NEW
+        status=ContactStatus.NEW,
+        contact_method=contact_method
     )
     
     db.add(new_contact)
     await db.flush()
     await db.refresh(new_contact)
     
-    # Send to Make.com Webhook
-    if settings.make_webhook_url:
-        try:
-            async with httpx.AsyncClient() as client:
-                await client.post(
-                    settings.make_webhook_url,
-                    json={
-                        "id": str(new_contact.id),
-                        "name": new_contact.name,
-                        "email": new_contact.email,
-                        "phone": new_contact.phone,
-                        "message": new_contact.notes,
-                        "source": new_contact.source,
-                        "date": new_contact.created_at.isoformat()
-                    },
-                    timeout=5.0
-                )
-                print(f"✅ Sent contact {new_contact.email} to Make webhook")
-        except Exception as e:
-            print(f"❌ Failed to send webhook to Make: {e}")
+    # Send to Discord
+    from ...services.discord import notify_new_lead
+    try:
+        await notify_new_lead(
+            name=new_contact.name,
+            email=new_contact.email,
+            phone=new_contact.phone,
+            company=new_contact.company,
+            message=new_contact.notes,
+            contact_method=contact_method.value if contact_method else "email"
+        )
+        print(f"✅ Sent lead {new_contact.email} to Discord")
+    except Exception as e:
+        print(f"❌ Failed to send to Discord: {e}")
 
     return ContactResponse.model_validate(new_contact)
 

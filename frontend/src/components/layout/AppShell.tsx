@@ -10,7 +10,23 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(true);
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [isCollapsed, setIsCollapsed] = useState(false);
     const isLoginPage = pathname === '/login';
+
+    // Load collapsed state from localStorage
+    useEffect(() => {
+        const saved = localStorage.getItem('sidebar-collapsed');
+        if (saved !== null) {
+            setIsCollapsed(saved === 'true');
+        }
+    }, []);
+
+    // Save collapsed state to localStorage
+    const toggleCollapsed = () => {
+        const newValue = !isCollapsed;
+        setIsCollapsed(newValue);
+        localStorage.setItem('sidebar-collapsed', String(newValue));
+    };
 
     useEffect(() => {
         const checkAuth = () => {
@@ -64,9 +80,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 </div>
             </div>
 
-            <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+            <Sidebar
+                isOpen={sidebarOpen}
+                onClose={() => setSidebarOpen(false)}
+                isCollapsed={isCollapsed}
+                onToggleCollapse={toggleCollapsed}
+            />
 
-            <main className="flex-1 w-full lg:ml-64 p-4 lg:p-8 mt-16 lg:mt-0 transition-all duration-300">
+            <main className={`flex-1 w-full p-4 lg:p-8 mt-16 lg:mt-0 transition-all duration-300 ${isCollapsed ? 'lg:ml-20' : 'lg:ml-64'
+                }`}>
                 {children}
             </main>
         </div>
