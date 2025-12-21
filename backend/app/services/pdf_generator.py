@@ -1,35 +1,21 @@
 """
-PDF Generation Service using xhtml2pdf (Vercel Friendly).
-Generates high-fidelity PDFs using HTML Tables/CSS.
-
-Note: xhtml2pdf requires pycairo which needs system libraries.
-If not available, PDF generation will fail gracefully.
+PDF Generation Service using ReportLab (Vercel Compatible).
+Generates professional PDFs for quotes, invoices, and receipts.
 """
 
-import base64
 import os
 from io import BytesIO
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 
-# Lazy import for xhtml2pdf - will be imported when needed
-pisa = None
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
+from reportlab.lib.enums import TA_LEFT, TA_RIGHT, TA_CENTER
 
-def _get_pisa():
-    """Lazy load xhtml2pdf to avoid import errors when cairo is not available."""
-    global pisa
-    if pisa is None:
-        try:
-            from xhtml2pdf import pisa as _pisa
-            pisa = _pisa
-        except ImportError as e:
-            raise ImportError(
-                "xhtml2pdf is not available. PDF generation requires xhtml2pdf and pycairo. "
-                f"Original error: {e}"
-            )
-    return pisa
-
-# --- Configuration & Assets ---
+# --- Configuration ---
 
 COMPANY_INFO = {
     "name": "ByteWorks Agency",
@@ -37,128 +23,158 @@ COMPANY_INFO = {
     "email": "macrodriguez2512@gmail.com",
     "phone": "+1 (868) 775-9858",
     "website": "byteworksagency.com",
-    # Asegúrate de que este archivo exista en tu backend/app/assets/ o usa un path absoluto válido
-    "logo_path": "app/assets/logo.png" 
 }
+
+# Colors
+PRIMARY_COLOR = colors.HexColor("#10B981")  # Emerald green
+DARK_COLOR = colors.HexColor("#1F2937")
+GRAY_COLOR = colors.HexColor("#6B7280")
+LIGHT_GRAY = colors.HexColor("#F3F4F6")
 
 # Translations
 TRANSLATIONS = {
     "en": {
-        "quote": {"title": "QUOTE", "date_label": "Issue Date", "valid_label": "Valid Until", "due_label": "Due Date"},
-        "invoice": {"title": "INVOICE", "date_label": "Invoice Date", "due_label": "Due Date", "valid_label": "Due Date"},
-        "receipt": {"title": "PAYMENT RECEIPT", "date_label": "Payment Date", "due_label": "Original Due Date", "valid_label": "Original Due Date"},
+        "quote": {"title": "QUOTE", "date_label": "Issue Date", "valid_label": "Valid Until"},
+        "invoice": {"title": "INVOICE", "date_label": "Invoice Date", "due_label": "Due Date"},
+        "receipt": {"title": "PAYMENT RECEIPT", "date_label": "Payment Date"},
         "common": {
             "from": "FROM", "to": "TO", "description": "DESCRIPTION", "qty": "QTY", 
-            "price": "PRICE", "total": "TOTAL", "subtotal": "Subtotal", "discount": "Discount", "tax": "Tax"
+            "price": "PRICE", "total": "TOTAL", "subtotal": "Subtotal", "discount": "Discount", "tax": "Tax",
+            "thank_you": "Thank you for your business!"
         },
+        "terms_title": "Terms & Conditions",
         "terms": {
             "quote": [
                 "Payment of the first month is required to start the service.",
                 "This quote is valid for the period specified above.",
-                "Services are billed on a monthly or yearly basis unless otherwise specified.",
                 "Prices are subject to change with 30 days prior notice.",
-                "Cancellation requires 15 days written notice before the next billing cycle.",
-                "Late payments beyond 5 days may result in temporary service suspension.",
-                "You retain ownership of your content (text, images, customer data). ByteWorks retains rights to the platform code and architecture.",
-                "Acceptance of this quote constitutes agreement to ByteWorks Agency's full Terms & Conditions available at byteworksagency.com/terms.",
-                "ByteWorks Agency's total liability is limited to the amount paid for services in the current billing period."
             ],
             "invoice": [
                 "Payment is due by the date specified above.",
-                "*Late payments may incur a 5% monthly late fee after 7 days.",
-                "*For questions about this invoice, please contact us at the email above.",
-                "You retain ownership of your content. ByteWorks retains rights to the platform code."
+                "Late payments may incur a 5% monthly late fee.",
             ],
             "receipt": [
                 "This is a computer generated receipt.",
                 "Thank you for your prompt payment.",
-                "Please retain this document for your records."
             ]
         }
     },
     "es": {
-        "quote": {"title": "COTIZACIÓN", "date_label": "Fecha Emisión", "valid_label": "Válido Hasta", "due_label": "Vencimiento"},
-        "invoice": {"title": "FACTURA", "date_label": "Fecha Factura", "due_label": "Vencimiento", "valid_label": "Vencimiento"},
-        "receipt": {"title": "RECIBO DE PAGO", "date_label": "Fecha Pago", "due_label": "Vencimiento Orig.", "valid_label": "Vencimiento Orig."},
+        "quote": {"title": "COTIZACIÓN", "date_label": "Fecha Emisión", "valid_label": "Válido Hasta"},
+        "invoice": {"title": "FACTURA", "date_label": "Fecha Factura", "due_label": "Vencimiento"},
+        "receipt": {"title": "RECIBO DE PAGO", "date_label": "Fecha Pago"},
         "common": {
             "from": "DE", "to": "PARA", "description": "DESCRIPCIÓN", "qty": "CANT", 
-            "price": "PRECIO", "total": "TOTAL", "subtotal": "Subtotal", "discount": "Descuento", "tax": "Impuesto"
+            "price": "PRECIO", "total": "TOTAL", "subtotal": "Subtotal", "discount": "Descuento", "tax": "Impuesto",
+            "thank_you": "¡Gracias por su preferencia!"
         },
+        "terms_title": "Términos y Condiciones",
         "terms": {
             "quote": [
                 "Se requiere el pago del primer mes para iniciar.",
                 "Esta cotización es válida por el período indicado.",
-                "Los servicios se facturan mensual o anualmente.",
-                "Precios sujetos a cambios con 30 días de aviso."
             ],
             "invoice": [
-                "El pago vence en 15 días.",
-                "Pagos tardíos pueden generar un recargo del 5%."
+                "El pago vence en la fecha indicada.",
+                "Pagos tardíos pueden generar recargo del 5%.",
             ],
             "receipt": [
                 "Este es un recibo generado electrónicamente.",
                 "Gracias por su pronto pago.",
-                "Por favor conserve este documento para sus registros."
             ]
         }
     }
 }
 
-def _get_logo_base64() -> Optional[str]:
-    """Lee el logo desde el disco y lo retorna como base64 string para xhtml2pdf (data URI)."""
-    # Intentar varias rutas posibles para robustez en desarrollo/prod
-    possible_paths = [
-        os.path.join(os.getcwd(), 'app', 'assets', 'logo.png'),
-        os.path.join(os.getcwd(), 'backend', 'app', 'assets', 'logo.png'),
-        r"C:\Users\Marc\Desktop\ByteWorks\byteworks-dashboard\backend\app\assets\logo.png"
-    ]
-    
-    logo_path = None
-    for path in possible_paths:
-        if os.path.exists(path):
-            logo_path = path
-            break
-            
-    if logo_path:
-        try:
-            with open(logo_path, "rb") as image_file:
-                encoded = base64.b64encode(image_file.read()).decode('utf-8')
-                return f"data:image/png;base64,{encoded}"
-        except Exception as e:
-            print(f"Error reading logo: {e}")
-            return None
-    return None
 
 def _format_currency(amount: float, currency: str = "USD") -> str:
-    symbol = "$" if currency == "USD" else ("TT$" if currency == "TTD" else currency)
+    """Format amount as currency string."""
+    symbol = "$" if currency == "USD" else ("TT$" if currency == "TTD" else "€")
     return f"{symbol}{amount:,.2f}"
 
+
 def _format_date(date_str: Optional[str]) -> str:
+    """Format date string to readable format."""
     if not date_str:
         return ""
     try:
-        # Intentar parsear ISO format
         dt = datetime.fromisoformat(str(date_str).replace('Z', '+00:00'))
         return dt.strftime("%b %d, %Y")
     except:
-        return str(date_str)
+        return str(date_str)[:10] if date_str else ""
 
-# --- PDF Generation Functions (Async wrapper for compatibility) ---
 
-async def _generate_pdf_from_html(html_content: str) -> bytes:
-    """Combierte HTML a PDF usando xhtml2pdf."""
-    pdf_buffer = BytesIO()
-    pisa_module = _get_pisa()  # Lazy load xhtml2pdf
-    pisa_status = pisa_module.CreatePDF(BytesIO(html_content.encode('utf-8')), dest=pdf_buffer)
+def _get_logo_path() -> Optional[str]:
+    """Find logo file path."""
+    possible_paths = [
+        os.path.join(os.getcwd(), 'app', 'assets', 'logo.png'),
+        os.path.join(os.getcwd(), 'backend', 'app', 'assets', 'logo.png'),
+    ]
+    for path in possible_paths:
+        if os.path.exists(path):
+            return path
+    return None
+
+
+def _create_styles():
+    """Create custom paragraph styles."""
+    styles = getSampleStyleSheet()
     
-    if pisa_status.err:
-        print(f"PDF Generation Error: {pisa_status.err}")
-        return b""
-        
-    return pdf_buffer.getvalue()
+    styles.add(ParagraphStyle(
+        'CompanyName',
+        parent=styles['Heading1'],
+        fontSize=18,
+        textColor=DARK_COLOR,
+        spaceAfter=2,
+    ))
+    
+    styles.add(ParagraphStyle(
+        'DocTitle',
+        parent=styles['Heading1'],
+        fontSize=24,
+        textColor=PRIMARY_COLOR,
+        alignment=TA_RIGHT,
+    ))
+    
+    styles.add(ParagraphStyle(
+        'SectionTitle',
+        parent=styles['Heading2'],
+        fontSize=10,
+        textColor=GRAY_COLOR,
+        spaceBefore=12,
+        spaceAfter=4,
+    ))
+    
+    styles.add(ParagraphStyle(
+        'ClientInfo',
+        parent=styles['Normal'],
+        fontSize=10,
+        textColor=DARK_COLOR,
+        leading=14,
+    ))
+    
+    styles.add(ParagraphStyle(
+        'TermsText',
+        parent=styles['Normal'],
+        fontSize=8,
+        textColor=GRAY_COLOR,
+        leading=10,
+    ))
+    
+    styles.add(ParagraphStyle(
+        'ThankYou',
+        parent=styles['Normal'],
+        fontSize=12,
+        textColor=PRIMARY_COLOR,
+        alignment=TA_CENTER,
+        spaceBefore=20,
+    ))
+    
+    return styles
 
-async def _generate_generic_pdf(
-    doc_type: str, 
+
+async def _generate_pdf(
+    doc_type: str,
     number: str,
     client: Dict[str, str],
     items: List[Dict[str, Any]],
@@ -167,290 +183,189 @@ async def _generate_generic_pdf(
     notes: Optional[str] = None,
     language: str = "en"
 ) -> bytes:
+    """Generate PDF document using ReportLab."""
     
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=letter,
+        rightMargin=0.5*inch,
+        leftMargin=0.5*inch,
+        topMargin=0.5*inch,
+        bottomMargin=0.5*inch
+    )
+    
+    styles = _create_styles()
     t = TRANSLATIONS.get(language, TRANSLATIONS["en"])
     t_doc = t[doc_type]
     t_common = t["common"]
-    terms_list = t["terms"][doc_type]
+    currency = financials.get("currency", "USD")
     
-    logo_data = _get_logo_base64()
-    logo_img = f'<img src="{logo_data}" style="height: 50px; vertical-align: middle;" />' if logo_data else ''
-
-    # Rows
-    rows_html = ""
-    for item in items:
-        qty = item.get("quantity") or 1
-        price = item.get("unit_price") or 0
-        total = qty * price
-        
-        rows_html += f"""
-        <tr>
-            <td class="col-desc">{item.get('description', '')}</td>
-            <td class="col-qty">{qty}</td>
-            <td class="col-price">{_format_currency(price, financials['currency'])}</td>
-            <td class="col-total">{_format_currency(total, financials['currency'])}</td>
-        </tr>
-        """
-
-    # Extras
-    extras_html = ""
-    if financials.get('discount'):
-        extras_html += f"""
-        <tr>
-            <td colspan="3" class="text-right label">{t_common['discount']}</td>
-            <td class="text-right value color-brand">-{_format_currency(financials['discount'], financials['currency'])}</td>
-        </tr>
-        """
-    if financials.get('tax'):
-        extras_html += f"""
-        <tr>
-            <td colspan="3" class="text-right label">{t_common['tax']}</td>
-            <td class="text-right value">{_format_currency(financials['tax'], financials['currency'])}</td>
-        </tr>
-        """
-
-    notes_section = ""
-    if notes:
-        notes_section = f"""
-        <div class="notes-box">
-            <p class="section-title">NOTES</p>
-            <p>{notes.replace(chr(10), '<br/>')}</p>
-        </div>
-        """
-
-    terms_html = "".join([f"<li>{term}</li>" for term in terms_list])
-
-    # Template HTML con CSS inline y tablas para layout (xhtml2pdf friendly)
-    html_content = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <style>
-            @page {{
-                size: a4 portrait;
-                margin: 2cm;
-                @frame footer_frame {{
-                    -pdf-frame-content: footerContent;
-                    bottom: 1cm;
-                    margin-left: 2cm;
-                    margin-right: 2cm;
-                    height: 1cm;
-                }}
-            }}
-            body {{
-                font-family: Helvetica, sans-serif;
-                font-size: 11pt;
-                color: #333333;
-            }}
-            .text-right {{ text-align: right; }}
-            .text-center {{ text-align: center; }}
-            .font-bold {{ font-weight: bold; }}
-            .color-brand {{ color: #06b6d4; }}
-            .color-gray {{ color: #666666; }}
-            .color-light {{ color: #999999; }}
-            
-            /* Header */
-            table.header {{ width: 100%; margin-bottom: 30px; }}
-            .company-name {{ font-size: 18pt; font-weight: bold; color: #000; }}
-            .tagline {{ font-size: 10pt; color: #888; }}
-            
-            .doc-title-badge {{
-                background-color: #e0faff;
-                color: #06b6d4;
-                padding: 5px 15px;
-                border-radius: 5px;
-                font-size: 14pt;
-                font-weight: bold;
-                text-transform: uppercase;
-                display: inline-block;
-            }}
-            
-            /* Two Column Info */
-            table.info-grid {{ width: 100%; margin-bottom: 30px; }}
-            .info-label {{ 
-                font-size: 8pt; 
-                font-weight: bold; 
-                color: #aaa; 
-                text-transform: uppercase; 
-                margin-bottom: 5px;
-            }}
-            .info-value {{ font-size: 10pt; line-height: 1.4; }}
-            
-            /* Dates Box */
-            .dates-box {{
-                background-color: #f9fafb;
-                border: 1px solid #eeeeee;
-                padding: 10px;
-                margin-bottom: 30px;
-            }}
-            table.dates-table {{ width: 100%; }}
-            
-            /* Items Table */
-            table.items {{ width: 100%; border-collapse: collapse; margin-bottom: 30px; }}
-            table.items th {{ 
-                background-color: #f9fafb; 
-                color: #666; 
-                font-weight: bold; 
-                text-transform: uppercase; 
-                font-size: 8pt;
-                padding: 10px;
-                border-bottom: 1px solid #ddd;
-                text-align: left;
-            }}
-            table.items td {{ 
-                padding: 10px; 
-                border-bottom: 1px solid #eee; 
-                font-size: 10pt;
-            }}
-            .col-desc {{ width: 50%; }}
-            .col-qty {{ width: 10%; text-align: center; }}
-            .col-price {{ width: 20%; text-align: right; }}
-            .col-total {{ width: 20%; text-align: right; font-weight: bold; }}
-            
-            /* Totals */
-            table.totals {{ width: 100%; margin-bottom: 40px; }}
-            table.totals td.label {{ padding: 5px; color: #666; font-size: 10pt; }}
-            table.totals td.value {{ padding: 5px; font-weight: bold; font-size: 10pt; }}
-            table.totals tr.grand-total td {{ 
-                border-top: 1px solid #ddd; 
-                padding-top: 10px; 
-                font-size: 14pt; 
-                color: #06b6d4;
-            }}
-            
-            /* Footer & Notes */
-            .notes-box {{ margin-bottom: 20px; }}
-            .section-title {{ 
-                font-size: 8pt; 
-                font-weight: bold; 
-                color: #aaa; 
-                text-transform: uppercase; 
-                margin-bottom: 5px;
-            }}
-            ul.terms {{ padding-left: 15px; margin: 0; }}
-            ul.terms li {{ font-size: 9pt; color: #666; margin-bottom: 3px; }}
-            
-            #footerContent {{ 
-                text-align: center; 
-                font-size: 9pt; 
-                color: #aaa; 
-                border-top: 1px solid #eee;
-                padding-top: 10px;
-            }}
-        </style>
-    </head>
-    <body>
-        <!-- Header -->
-        <table class="header">
-            <tr>
-                <td valign="top">
-                    {logo_img}
-                    <div class="company-name" style="margin-top: 5px;">{COMPANY_INFO['name']}</div>
-                    <div class="tagline">{COMPANY_INFO['tagline']}</div>
-                </td>
-                <td valign="top" align="right">
-                    <div class="doc-title-badge">{t_doc['title']}</div>
-                    <div style="margin-top: 5px; color: #666; font-weight: bold;">{number}</div>
-                </td>
-            </tr>
-        </table>
-        
-        <!-- Info Grid -->
-        <table class="info-grid">
-            <tr>
-                <td valign="top" width="50%">
-                    <div class="info-label">{t_common['from']}</div>
-                    <div class="info-value">
-                        <b>{COMPANY_INFO['name']}</b><br/>
-                        {COMPANY_INFO['email']}<br/>
-                        {COMPANY_INFO['phone']}<br/>
-                        {COMPANY_INFO['website']}
-                    </div>
-                </td>
-                <td valign="top" width="50%">
-                    <div class="info-label">{t_common['to']}</div>
-                    <div class="info-value">
-                        <b>{client.get('name', 'Client')}</b><br/>
-                        {client.get('company', '')}<br/>
-                        {client.get('email', '')}<br/>
-                        {client.get('phone', '')}
-                    </div>
-                </td>
-            </tr>
-        </table>
-        
-        <!-- Dates -->
-        <div class="dates-box">
-            <table class="dates-table">
-                <tr>
-                    <td>
-                        <span class="color-gray">{t_doc['date_label']}:</span> 
-                        <b>{_format_date(dates.get('primary'))}</b>
-                    </td>
-                    <td>
-                        <span class="color-gray">{t_doc['valid_label'] if doc_type == 'quote' else t_doc['due_label']}:</span> 
-                        <b>{_format_date(dates.get('secondary'))}</b>
-                    </td>
-                </tr>
-            </table>
-        </div>
-        
-        <!-- Items -->
-        <table class="items">
-            <thead>
-                <tr>
-                    <th class="col-desc">{t_common['description']}</th>
-                    <th class="col-qty">{t_common['qty']}</th>
-                    <th class="col-price">{t_common['price']}</th>
-                    <th class="col-total">{t_common['total']}</th>
-                </tr>
-            </thead>
-            <tbody>
-                {rows_html}
-            </tbody>
-        </table>
-        
-        <!-- Totals -->
-        <table class="totals">
-            <tr>
-                <td width="60%"></td>
-                <td width="40%">
-                    <table width="100%">
-                        <tr>
-                            <td class="text-right label">{t_common['subtotal']}</td>
-                            <td class="text-right value">{_format_currency(financials['subtotal'], financials['currency'])}</td>
-                        </tr>
-                        {extras_html}
-                        <tr class="grand-total">
-                            <td class="text-right label">Total ({financials['currency']})</td>
-                            <td class="text-right value">{_format_currency(financials['total'], financials['currency'])}</td>
-                        </tr>
-                    </table>
-                </td>
-            </tr>
-        </table>
-        
-        <!-- Notes & Terms -->
-        {notes_section}
-        
-        <div class="terms-box">
-            <p class="section-title">{language.upper() == 'ES' and 'TÉRMINOS Y CONDICIONES' or 'TERMS & CONDITIONS'}</p>
-            <ul class="terms">
-                {terms_html}
-            </ul>
-        </div>
-        
-        <!-- Footer defined in @page -->
-        <div id="footerContent">
-            Thank you for your business! - {COMPANY_INFO['website']}
-        </div>
-    </body>
-    </html>
+    elements = []
+    
+    # --- Header Section ---
+    logo_path = _get_logo_path()
+    
+    # Company info and document title in header table
+    header_data = []
+    
+    # Left side: Logo + Company name
+    company_info_text = f"""
+    <b>{COMPANY_INFO['name']}</b><br/>
+    <font size="8" color="#6B7280">{COMPANY_INFO['tagline']}</font><br/>
+    <font size="8" color="#6B7280">{COMPANY_INFO['email']}</font><br/>
+    <font size="8" color="#6B7280">{COMPANY_INFO['phone']}</font>
     """
+    company_para = Paragraph(company_info_text, styles['Normal'])
     
-    return await _generate_pdf_from_html(html_content)
+    # Right side: Document title and number
+    title_text = f"""
+    <font size="24" color="#10B981"><b>{t_doc['title']}</b></font><br/>
+    <font size="12" color="#1F2937">#{number}</font>
+    """
+    title_para = Paragraph(title_text, ParagraphStyle('RightAlign', alignment=TA_RIGHT))
+    
+    header_table = Table([[company_para, title_para]], colWidths=[3.5*inch, 4*inch])
+    header_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
+    ]))
+    elements.append(header_table)
+    elements.append(Spacer(1, 0.3*inch))
+    
+    # --- Date and Client Section ---
+    # Dates
+    date_primary = _format_date(dates.get("primary"))
+    date_secondary = _format_date(dates.get("secondary"))
+    
+    date_label_1 = t_doc.get("date_label", "Date")
+    date_label_2 = t_doc.get("valid_label", t_doc.get("due_label", ""))
+    
+    dates_text = f"<b>{date_label_1}:</b> {date_primary}"
+    if date_secondary and date_label_2:
+        dates_text += f"&nbsp;&nbsp;&nbsp;&nbsp;<b>{date_label_2}:</b> {date_secondary}"
+    
+    elements.append(Paragraph(dates_text, styles['ClientInfo']))
+    elements.append(Spacer(1, 0.2*inch))
+    
+    # Client info
+    elements.append(Paragraph(f"<b>{t_common['to']}:</b>", styles['SectionTitle']))
+    
+    client_name = client.get("name", "Client")
+    client_email = client.get("email", "")
+    client_phone = client.get("phone", "")
+    client_company = client.get("company", "")
+    
+    client_text = f"<b>{client_name}</b>"
+    if client_company:
+        client_text += f"<br/>{client_company}"
+    if client_email:
+        client_text += f"<br/>{client_email}"
+    if client_phone:
+        client_text += f"<br/>{client_phone}"
+    
+    elements.append(Paragraph(client_text, styles['ClientInfo']))
+    elements.append(Spacer(1, 0.3*inch))
+    
+    # --- Items Table ---
+    table_data = [[
+        Paragraph(f"<b>{t_common['description']}</b>", styles['Normal']),
+        Paragraph(f"<b>{t_common['qty']}</b>", ParagraphStyle('Center', alignment=TA_CENTER)),
+        Paragraph(f"<b>{t_common['price']}</b>", ParagraphStyle('Right', alignment=TA_RIGHT)),
+        Paragraph(f"<b>{t_common['total']}</b>", ParagraphStyle('Right', alignment=TA_RIGHT)),
+    ]]
+    
+    for item in items:
+        desc = item.get("description", item.get("name", "Item"))
+        qty = item.get("quantity", 1)
+        price = float(item.get("unit_price", item.get("price", 0)))
+        total = float(item.get("total", qty * price))
+        
+        table_data.append([
+            Paragraph(desc, styles['Normal']),
+            Paragraph(str(qty), ParagraphStyle('Center', alignment=TA_CENTER)),
+            Paragraph(_format_currency(price, currency), ParagraphStyle('Right', alignment=TA_RIGHT)),
+            Paragraph(_format_currency(total, currency), ParagraphStyle('Right', alignment=TA_RIGHT)),
+        ])
+    
+    items_table = Table(table_data, colWidths=[3.5*inch, 0.7*inch, 1.3*inch, 1.5*inch])
+    items_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), LIGHT_GRAY),
+        ('TEXTCOLOR', (0, 0), (-1, 0), GRAY_COLOR),
+        ('ALIGN', (1, 0), (-1, -1), 'RIGHT'),
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+        ('TOPPADDING', (0, 0), (-1, 0), 10),
+        ('BOTTOMPADDING', (0, 1), (-1, -1), 8),
+        ('TOPPADDING', (0, 1), (-1, -1), 8),
+        ('LINEBELOW', (0, 0), (-1, 0), 1, colors.HexColor("#E5E7EB")),
+        ('LINEBELOW', (0, 1), (-1, -2), 0.5, colors.HexColor("#F3F4F6")),
+        ('LINEBELOW', (0, -1), (-1, -1), 1, colors.HexColor("#E5E7EB")),
+    ]))
+    elements.append(items_table)
+    elements.append(Spacer(1, 0.2*inch))
+    
+    # --- Totals Section ---
+    subtotal = financials.get("subtotal", 0)
+    discount = financials.get("discount", 0)
+    tax = financials.get("tax", 0)
+    total = financials.get("total", subtotal - discount + tax)
+    
+    totals_data = []
+    totals_data.append(["", f"{t_common['subtotal']}:", _format_currency(subtotal, currency)])
+    
+    if discount > 0:
+        totals_data.append(["", f"{t_common['discount']}:", f"-{_format_currency(discount, currency)}"])
+    
+    if tax > 0:
+        totals_data.append(["", f"{t_common['tax']}:", _format_currency(tax, currency)])
+    
+    totals_data.append(["", f"<b>{t_common['total']}:</b>", f"<b>{_format_currency(total, currency)}</b>"])
+    
+    # Convert to paragraphs for styling
+    totals_para_data = []
+    for row in totals_data:
+        totals_para_data.append([
+            "",
+            Paragraph(row[1], ParagraphStyle('Right', alignment=TA_RIGHT, fontSize=10)),
+            Paragraph(row[2], ParagraphStyle('Right', alignment=TA_RIGHT, fontSize=10)),
+        ])
+    
+    totals_table = Table(totals_para_data, colWidths=[4*inch, 1.5*inch, 1.5*inch])
+    totals_table.setStyle(TableStyle([
+        ('ALIGN', (1, 0), (-1, -1), 'RIGHT'),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('LINEABOVE', (1, -1), (-1, -1), 1, PRIMARY_COLOR),
+        ('TEXTCOLOR', (1, -1), (-1, -1), PRIMARY_COLOR),
+    ]))
+    elements.append(totals_table)
+    elements.append(Spacer(1, 0.3*inch))
+    
+    # --- Notes ---
+    if notes:
+        elements.append(Paragraph("<b>Notes:</b>", styles['SectionTitle']))
+        elements.append(Paragraph(notes, styles['ClientInfo']))
+        elements.append(Spacer(1, 0.2*inch))
+    
+    # --- Terms & Conditions ---
+    terms_list = t["terms"].get(doc_type, [])
+    if terms_list:
+        elements.append(Paragraph(f"<b>{t['terms_title']}</b>", styles['SectionTitle']))
+        for term in terms_list:
+            elements.append(Paragraph(f"• {term}", styles['TermsText']))
+        elements.append(Spacer(1, 0.2*inch))
+    
+    # --- Thank You ---
+    elements.append(Paragraph(t_common["thank_you"], styles['ThankYou']))
+    
+    # Build PDF
+    doc.build(elements)
+    
+    return buffer.getvalue()
 
-# --- Public Interfaces (Async Wrapper) ---
+
+# --- Public Interfaces ---
 
 async def generate_quote_pdf(
     quote_number: str,
@@ -469,8 +384,8 @@ async def generate_quote_pdf(
     notes: Optional[str] = None,
     language: str = "en"
 ) -> bytes:
-    
-    return await _generate_generic_pdf(
+    """Generate a Quote PDF."""
+    return await _generate_pdf(
         doc_type="quote",
         number=quote_number,
         client={"name": client_name, "email": client_email, "phone": client_phone, "company": client_company},
@@ -480,6 +395,7 @@ async def generate_quote_pdf(
         notes=notes,
         language=language
     )
+
 
 async def generate_invoice_pdf(
     invoice_number: str,
@@ -491,7 +407,7 @@ async def generate_invoice_pdf(
     currency: str = "USD",
     client_phone: Optional[str] = None,
     client_company: Optional[str] = None,
-    tax_rate: float = 0, # This parameter is not used in the new _generate_generic_pdf financials dict
+    tax_rate: float = 0,
     tax: float = 0,
     due_date: Optional[str] = None,
     created_at: Optional[str] = None,
@@ -500,20 +416,37 @@ async def generate_invoice_pdf(
     notes: Optional[str] = None,
     language: str = "en"
 ) -> bytes:
+    """Generate an Invoice PDF."""
+    # If paid, generate receipt instead
+    if is_paid:
+        return await generate_receipt_pdf(
+            invoice_number=invoice_number,
+            client_name=client_name,
+            client_email=client_email,
+            client_phone=client_phone,
+            client_company=client_company,
+            items=items,
+            subtotal=subtotal,
+            total=total,
+            currency=currency,
+            tax=tax,
+            due_date=due_date,
+            paid_at=paid_at,
+            notes=notes,
+            language=language
+        )
     
-    doc_type = "receipt" if is_paid else "invoice"
-    
-    pdf_bytes = await _generate_generic_pdf(
-        doc_type=doc_type,
+    return await _generate_pdf(
+        doc_type="invoice",
         number=invoice_number,
         client={"name": client_name, "email": client_email, "phone": client_phone, "company": client_company},
         items=items,
-        financials={"subtotal": subtotal, "total": total, "discount": 0, "tax": tax, "currency": currency}, # Discount not typical on final invoice totals passed here usually
-        dates={"primary": paid_at if is_paid else created_at, "secondary": due_date},
+        financials={"subtotal": subtotal, "total": total, "discount": 0, "tax": tax, "currency": currency},
+        dates={"primary": created_at, "secondary": due_date},
         notes=notes,
         language=language
     )
-    return pdf_bytes
+
 
 async def generate_receipt_pdf(
     invoice_number: str,
@@ -527,12 +460,12 @@ async def generate_receipt_pdf(
     client_phone: Optional[str] = None,
     client_company: Optional[str] = None,
     tax: float = 0,
-    due_date: Optional[str] = None, # Original Due Date
+    due_date: Optional[str] = None,
     notes: Optional[str] = None,
     language: str = "en"
 ) -> bytes:
-    
-    return await _generate_generic_pdf(
+    """Generate a Payment Receipt PDF."""
+    return await _generate_pdf(
         doc_type="receipt",
         number=invoice_number,
         client={"name": client_name, "email": client_email, "phone": client_phone, "company": client_company},
