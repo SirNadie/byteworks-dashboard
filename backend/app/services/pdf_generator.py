@@ -1,6 +1,9 @@
 """
 PDF Generation Service using xhtml2pdf (Vercel Friendly).
 Generates high-fidelity PDFs using HTML Tables/CSS.
+
+Note: xhtml2pdf requires pycairo which needs system libraries.
+If not available, PDF generation will fail gracefully.
 """
 
 import base64
@@ -8,7 +11,23 @@ import os
 from io import BytesIO
 from datetime import datetime
 from typing import List, Dict, Any, Optional
-from xhtml2pdf import pisa
+
+# Lazy import for xhtml2pdf - will be imported when needed
+pisa = None
+
+def _get_pisa():
+    """Lazy load xhtml2pdf to avoid import errors when cairo is not available."""
+    global pisa
+    if pisa is None:
+        try:
+            from xhtml2pdf import pisa as _pisa
+            pisa = _pisa
+        except ImportError as e:
+            raise ImportError(
+                "xhtml2pdf is not available. PDF generation requires xhtml2pdf and pycairo. "
+                f"Original error: {e}"
+            )
+    return pisa
 
 # --- Configuration & Assets ---
 
@@ -129,7 +148,8 @@ def _format_date(date_str: Optional[str]) -> str:
 async def _generate_pdf_from_html(html_content: str) -> bytes:
     """Combierte HTML a PDF usando xhtml2pdf."""
     pdf_buffer = BytesIO()
-    pisa_status = pisa.CreatePDF(BytesIO(html_content.encode('utf-8')), dest=pdf_buffer)
+    pisa_module = _get_pisa()  # Lazy load xhtml2pdf
+    pisa_status = pisa_module.CreatePDF(BytesIO(html_content.encode('utf-8')), dest=pdf_buffer)
     
     if pisa_status.err:
         print(f"PDF Generation Error: {pisa_status.err}")
