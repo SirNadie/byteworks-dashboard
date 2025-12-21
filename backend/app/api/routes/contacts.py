@@ -107,6 +107,20 @@ async def list_contacts(
 # to ensure proper routing order. In FastAPI, routes with path parameters
 # can intercept static paths if defined first.
 
+@router.options("/public")
+async def options_public_contact():
+    """Handle CORS preflight for public contact endpoint."""
+    from fastapi.responses import Response
+    return Response(
+        status_code=200,
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
+            "Access-Control-Max-Age": "86400",
+        }
+    )
+
 @router.post("/public", response_model=ContactResponse, status_code=status.HTTP_201_CREATED)
 async def create_public_contact(
     contact_data: PublicContactRequest,
