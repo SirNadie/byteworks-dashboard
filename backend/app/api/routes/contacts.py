@@ -28,6 +28,7 @@ async def list_contacts(
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=100),
     status: Optional[ContactStatus] = None,
+    statuses: Optional[str] = Query(None, description="Comma-separated list of statuses to filter by"),
     search: Optional[str] = None,
 ):
     """
@@ -38,7 +39,8 @@ async def list_contacts(
         current_user: Current authenticated user
         page: Page number (1-indexed)
         size: Items per page
-        status: Filter by contact status
+        status: Filter by single contact status (deprecated, use statuses)
+        statuses: Comma-separated list of statuses (e.g., "NEW,drafting")
         search: Search in name, email, or company
         
     Returns:
@@ -48,8 +50,21 @@ async def list_contacts(
     query = select(Contact)
     count_query = select(func.count(Contact.id))
     
-    # Apply filters
-    if status:
+    # Apply filters - support multiple statuses
+    if statuses:
+        # Parse comma-separated statuses
+        status_list = []
+        for s in statuses.split(","):
+            s = s.strip()
+            try:
+                status_list.append(ContactStatus(s))
+            except ValueError:
+                pass  # Ignore invalid status values
+        
+        if status_list:
+            query = query.where(Contact.status.in_(status_list))
+            count_query = count_query.where(Contact.status.in_(status_list))
+    elif status:
         query = query.where(Contact.status == status)
         count_query = count_query.where(Contact.status == status)
     

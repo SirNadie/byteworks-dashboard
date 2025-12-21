@@ -115,6 +115,10 @@ export default function Sidebar({ isOpen, onClose, isCollapsed = false, onToggle
                         <span className="material-symbols-outlined">person_add</span>
                         {!isCollapsed && <span className="text-sm font-medium">Leads</span>}
                     </Link>
+                    <Link href="/services" className={getLinkClass('/services')} onClick={() => onClose()} title="Services">
+                        <span className="material-symbols-outlined">inventory_2</span>
+                        {!isCollapsed && <span className="text-sm font-medium">Services</span>}
+                    </Link>
                     <Link href="/quotes" className={getLinkClass('/quotes')} onClick={() => onClose()} title="Quotes">
                         <span className="material-symbols-outlined">description</span>
                         {!isCollapsed && <span className="text-sm font-medium">Quotes</span>}

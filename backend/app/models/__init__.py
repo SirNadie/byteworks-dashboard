@@ -1,7 +1,8 @@
 # SQLAlchemy Models
 from .user import User
 from .contact import Contact
-from .quote import Quote
+from .service import Service
+from .quote import Quote, QuoteItem
 from .invoice import Invoice
 
-__all__ = ["User", "Contact", "Quote", "Invoice"]
+__all__ = ["User", "Contact", "Service", "Quote", "QuoteItem", "Invoice"]

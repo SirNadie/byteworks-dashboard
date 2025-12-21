@@ -115,7 +115,14 @@ class Contact(Base):
     )
     
     # Relationships
-    quotes = relationship("Quote", back_populates="contact", lazy="selectin")
+    # Note: Quote has two FKs to contacts (contact_id and lead_id)
+    # We use contact_id as the primary relationship here
+    quotes = relationship(
+        "Quote",
+        back_populates="contact",
+        foreign_keys="[Quote.contact_id]",
+        lazy="selectin"
+    )
     invoices = relationship("Invoice", back_populates="contact", lazy="selectin")
     
     def __repr__(self) -> str:

@@ -173,13 +173,52 @@ class ApiClient {
         });
     }
 
+    // Services
+    async getServices(activeOnly: boolean = true): Promise<ServiceListResponse> {
+        const params = activeOnly ? '?active_only=true' : '?active_only=false';
+        return this.request<ServiceListResponse>(`/services${params}`);
+    }
+
+    async createService(data: ServiceCreate): Promise<Service> {
+        return this.request<Service>('/services', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    }
+
+    async updateService(id: string, data: ServiceUpdate): Promise<Service> {
+        return this.request<Service>(`/services/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    }
+
+    async deleteService(id: string): Promise<void> {
+        return this.request<void>(`/services/${id}`, {
+            method: 'DELETE',
+        });
+    }
+
     // Dashboard & Others
     async getDashboardData() {
         return this.request<any>('/analytics/dashboard');
     }
 
-    async getQuotes() {
-        return this.request<any>('/quotes');
+    // Quotes
+    async getQuotes(params: Record<string, string> = {}): Promise<QuoteListResponse> {
+        const query = new URLSearchParams(params).toString();
+        return this.request<QuoteListResponse>(`/quotes?${query}`);
+    }
+
+    async createQuote(data: QuoteCreate): Promise<Quote> {
+        return this.request<Quote>('/quotes', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    }
+
+    async getQuote(id: string): Promise<Quote> {
+        return this.request<Quote>(`/quotes/${id}`);
     }
 
     async getInvoices() {
@@ -187,4 +226,112 @@ class ApiClient {
     }
 }
 
+// Service interfaces
+export interface Service {
+    id: string;
+    name: string;
+    description?: string;
+    default_price: number;
+    currency: string;
+    category: string;
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface ServiceCreate {
+    name: string;
+    description?: string;
+    default_price: number;
+    currency?: string;
+    category?: string;
+    is_active?: boolean;
+}
+
+export interface ServiceUpdate {
+    name?: string;
+    description?: string;
+    default_price?: number;
+    currency?: string;
+    category?: string;
+    is_active?: boolean;
+}
+
+export interface ServiceListResponse {
+    items: Service[];
+    total: number;
+}
+
+// Quote interfaces
+export interface QuoteItem {
+    id?: string;
+    service_id?: string;
+    description: string;
+    quantity: number;
+    unit_price: number;
+    total?: number;
+    sort_order?: number;
+}
+
+export interface QuoteItemCreate {
+    service_id?: string;
+    description: string;
+    quantity: number;
+    unit_price: number;
+    sort_order?: number;
+}
+
+export interface Quote {
+    id: string;
+    quote_number: string;
+    client_name: string;
+    client_email: string;
+    client_phone?: string;
+    client_company?: string;
+    lead_id?: string;
+    status: string;
+    currency: string;
+    subtotal: number;
+    discount: number;
+    discount_type: string;
+    discount_value: number;
+    tax: number;
+    total: number;
+    valid_until: string;
+    language: string;
+    notes?: string;
+    reminder_sent: boolean;
+    created_at: string;
+    updated_at: string;
+    sent_at?: string;
+    items: QuoteItem[];
+}
+
+export interface QuoteCreate {
+    quote_number: string;
+    client_name: string;
+    client_email: string;
+    client_phone?: string;
+    client_company?: string;
+    lead_id?: string;
+    currency: string;
+    valid_until: string;
+    items: QuoteItemCreate[];
+    discount: number;
+    discount_type: string;
+    discount_value: number;
+    tax: number;
+    language: string;
+    notes?: string;
+}
+
+export interface QuoteListResponse {
+    items: Quote[];
+    total: number;
+    page: number;
+    size: number;
+    pages: number;
+}
+
 export const api = new ApiClient();
+

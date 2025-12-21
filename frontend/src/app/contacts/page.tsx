@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { api, Contact, ContactCreate, ContactUpdate } from '../../lib/apiClient';
 import ContactForm from '@/components/contacts/ContactForm';
+import { useToast, useConfirm } from '@/components/ui/Toast';
 
 const PAGE_SIZE = 10;
 
@@ -12,6 +13,10 @@ export default function LeadsPage() {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
+
+    // Toast & Confirm hooks
+    const toast = useToast();
+    const confirm = useConfirm();
 
     // Pagination State
     const [currentPage, setCurrentPage] = useState(1);
@@ -22,6 +27,9 @@ export default function LeadsPage() {
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingContact, setEditingContact] = useState<Contact | null>(null);
     const [formLoading, setFormLoading] = useState(false);
+
+    // Quote creation loading state
+    const [creatingQuoteForId, setCreatingQuoteForId] = useState<string | null>(null);
 
     // Debounce search input
     useEffect(() => {
@@ -39,6 +47,8 @@ export default function LeadsPage() {
             const params: Record<string, string> = {
                 page: page.toString(),
                 size: PAGE_SIZE.toString(),
+                // Only show leads that don't have a quote yet (NEW and drafting)
+                statuses: 'NEW,drafting',
             };
             if (searchTerm.trim()) {
                 params.search = searchTerm.trim();
@@ -61,6 +71,7 @@ export default function LeadsPage() {
     const router = useRouter();
 
     const handleCreateQuote = async (lead: Contact) => {
+        setCreatingQuoteForId(lead.id);
         try {
             // Update lead status to 'drafting' 
             await api.updateContact(lead.id, { status: 'drafting' });
@@ -68,7 +79,8 @@ export default function LeadsPage() {
             router.push(`/quotes/new?leadId=${lead.id}`);
         } catch (error) {
             console.error('Failed to start quote creation', error);
-            alert('Failed to start quote creation');
+            toast.error('Failed to start quote creation');
+            setCreatingQuoteForId(null);
         }
     };
 
@@ -78,14 +90,22 @@ export default function LeadsPage() {
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm('Are you sure you want to delete this lead?')) return;
+        const confirmed = await confirm({
+            title: 'Delete Lead',
+            message: 'Are you sure you want to delete this lead? This action cannot be undone.',
+            confirmText: 'Delete',
+            cancelText: 'Cancel',
+            type: 'danger'
+        });
+        if (!confirmed) return;
 
         try {
             await api.deleteContact(id);
+            toast.success('Lead deleted successfully');
             fetchLeads(debouncedSearch, currentPage);
         } catch (error) {
             console.error('Failed to delete lead', error);
-            alert('Failed to delete lead');
+            toast.error('Failed to delete lead');
         }
     };
 
@@ -98,10 +118,11 @@ export default function LeadsPage() {
                 await api.createContact(data as ContactCreate);
             }
             setIsFormOpen(false);
+            toast.success(editingContact ? 'Lead updated successfully' : 'Lead created successfully');
             fetchLeads(debouncedSearch, currentPage);
         } catch (error) {
             console.error('Failed to save lead', error);
-            alert('Failed to save lead');
+            toast.error('Failed to save lead');
         } finally {
             setFormLoading(false);
         }
@@ -161,8 +182,121 @@ export default function LeadsPage() {
                 )}
             </div>
 
-            {/* Table */}
-            <div className="bg-white dark:bg-card-dark rounded-xl shadow-sm border border-gray-200 dark:border-border-dark overflow-hidden">
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-3">
+                {!loading && leads.length === 0 && (
+                    <div className="bg-white dark:bg-card-dark rounded-xl shadow-sm border border-gray-200 dark:border-border-dark p-8 text-center">
+                        <div className="flex flex-col items-center justify-center">
+                            <div className="size-12 rounded-full bg-gray-100 dark:bg-border-dark flex items-center justify-center mb-3">
+                                <span className="material-symbols-outlined text-gray-400">person_off</span>
+                            </div>
+                            <p className="font-medium text-gray-500 dark:text-gray-400">No leads found</p>
+                            <p className="text-sm mt-1 text-gray-400">Try adjusting your search or add a new lead.</p>
+                        </div>
+                    </div>
+                )}
+
+                {loading ? (
+                    // Mobile Loading Skeletons
+                    Array.from({ length: 3 }).map((_, i) => (
+                        <div key={i} className="bg-white dark:bg-card-dark rounded-xl shadow-sm border border-gray-200 dark:border-border-dark p-4 animate-pulse">
+                            <div className="flex items-start gap-3">
+                                <div className="h-12 w-12 rounded-full bg-gray-200 dark:bg-border-dark flex-shrink-0"></div>
+                                <div className="flex-1 space-y-2">
+                                    <div className="h-4 bg-gray-200 dark:bg-border-dark rounded w-3/4"></div>
+                                    <div className="h-3 bg-gray-200 dark:bg-border-dark rounded w-full"></div>
+                                    <div className="h-3 bg-gray-200 dark:bg-border-dark rounded w-1/2"></div>
+                                </div>
+                            </div>
+                        </div>
+                    ))
+                ) : (
+                    leads.map((lead) => (
+                        <div key={lead.id} className="bg-white dark:bg-card-dark rounded-xl shadow-sm border border-gray-200 dark:border-border-dark p-4 transition-all active:scale-[0.99]">
+                            {/* Header with avatar and name */}
+                            <div className="flex items-start justify-between gap-3">
+                                <div className="flex items-center gap-3 flex-1 min-w-0">
+                                    <div className="h-12 w-12 rounded-full bg-gradient-to-br from-brand to-brand-strong text-white flex items-center justify-center font-bold text-xl uppercase flex-shrink-0 shadow-sm">
+                                        {lead.name.charAt(0)}
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                        <div className="text-base font-semibold text-gray-900 dark:text-white truncate">{lead.name}</div>
+                                        {lead.company && (
+                                            <div className="text-sm text-gray-500 dark:text-gray-400 truncate">{lead.company}</div>
+                                        )}
+                                    </div>
+                                </div>
+                                {/* Status Badge */}
+                                <span className={`badge uppercase tracking-wider shadow-sm text-xs flex-shrink-0 ${lead.status === 'NEW' ? 'badge-new' :
+                                    lead.status === 'drafting' ? 'badge-drafting' :
+                                        lead.status === 'quoted' ? 'badge-quoted' :
+                                            lead.status === 'QUALIFIED' ? 'badge-qualified' :
+                                                lead.status === 'CONVERTED' ? 'badge-converted' :
+                                                    lead.status === 'CONTACTED' ? 'badge-contacted' :
+                                                        'badge-draft'
+                                    }`}>
+                                    {lead.status.toLowerCase()}
+                                </span>
+                            </div>
+
+                            {/* Contact Info */}
+                            <div className="mt-4 space-y-2">
+                                <a href={`mailto:${lead.email}`} className="text-sm text-gray-700 dark:text-gray-200 flex items-center gap-2 font-medium">
+                                    <span className="material-symbols-outlined text-[18px] opacity-70">mail</span>
+                                    <span className="truncate">{lead.email}</span>
+                                </a>
+                                {lead.phone && (
+                                    <a href={`tel:${lead.phone}`} className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                                        <span className="material-symbols-outlined text-[18px] opacity-70">call</span>
+                                        {lead.phone}
+                                    </a>
+                                )}
+                            </div>
+
+                            {/* Footer with source, date, and actions */}
+                            <div className="mt-4 pt-3 border-t border-gray-100 dark:border-border-dark flex items-center justify-between">
+                                <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+                                    <div className="flex items-center gap-1.5 capitalize">
+                                        <div className={`size-2 rounded-full ${lead.source === 'linkedin' ? 'bg-[#0077b5]' :
+                                            lead.source === 'web_form' ? 'bg-brand' :
+                                                'bg-gray-400'
+                                            }`}></div>
+                                        {lead.source.replace('_', ' ')}
+                                    </div>
+                                    <span>{new Date(lead.created_at).toLocaleDateString()}</span>
+                                </div>
+
+                                {/* Action Buttons - Always visible on mobile */}
+                                <div className="flex items-center gap-1">
+                                    <button
+                                        onClick={() => handleCreateQuote(lead)}
+                                        className={`p-2.5 rounded-lg transition-colors ${creatingQuoteForId === lead.id
+                                            ? 'text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
+                                            : 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50'
+                                            }`}
+                                        title="Create Quote"
+                                        disabled={creatingQuoteForId !== null}
+                                    >
+                                        <span className={`material-symbols-outlined text-xl ${creatingQuoteForId === lead.id ? 'animate-spin' : ''}`}>
+                                            {creatingQuoteForId === lead.id ? 'progress_activity' : 'request_quote'}
+                                        </span>
+                                    </button>
+                                    <button
+                                        onClick={() => handleDelete(lead.id)}
+                                        className="text-red-500 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 p-2.5 rounded-lg transition-colors"
+                                        title="Delete"
+                                    >
+                                        <span className="material-symbols-outlined text-xl">delete</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    ))
+                )}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block bg-white dark:bg-card-dark rounded-xl shadow-sm border border-gray-200 dark:border-border-dark overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200 dark:divide-border-dark">
                         <thead className="bg-gray-50 dark:bg-border-dark/30">
@@ -272,10 +406,16 @@ export default function LeadsPage() {
                                             <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
                                                 <button
                                                     onClick={() => handleCreateQuote(lead)}
-                                                    className="text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 p-2 rounded-lg transition-colors"
+                                                    className={`p-2 rounded-lg transition-colors ${creatingQuoteForId === lead.id
+                                                        ? 'text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
+                                                        : 'text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20'
+                                                        }`}
                                                     title="Create Quote"
+                                                    disabled={creatingQuoteForId !== null}
                                                 >
-                                                    <span className="material-symbols-outlined text-xl">request_quote</span>
+                                                    <span className={`material-symbols-outlined text-xl ${creatingQuoteForId === lead.id ? 'animate-spin' : ''}`}>
+                                                        {creatingQuoteForId === lead.id ? 'progress_activity' : 'request_quote'}
+                                                    </span>
                                                 </button>
                                                 <button
                                                     onClick={() => handleDelete(lead.id)}

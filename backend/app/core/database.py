@@ -24,7 +24,11 @@ engine = create_async_engine(
     database_url,
     echo=settings.debug,
     poolclass=NullPool,  # Required for serverless databases like Neon
-    connect_args={"ssl": ssl_context},
+    connect_args={
+        "ssl": ssl_context,
+        "prepared_statement_cache_size": 0,  # Disable prepared statement cache for Neon
+        "statement_cache_size": 0,  # Also disable asyncpg's statement cache
+    },
 )
 
 # Async session factory
