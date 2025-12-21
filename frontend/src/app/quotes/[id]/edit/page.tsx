@@ -6,6 +6,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { api, Quote, Service, QuoteUpdate as QuoteUpdateType, QuoteItemCreate } from '../../../../lib/apiClient';
 import { useToast } from '@/components/ui/Toast';
+import Breadcrumbs from '@/components/ui/Breadcrumbs';
 
 // Company info - TODO: Move to config/env
 const COMPANY_INFO = {
@@ -325,6 +326,13 @@ export default function EditQuotePage() {
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
+            {/* Breadcrumbs */}
+            <Breadcrumbs items={[
+                { label: 'Quotes', href: '/quotes' },
+                { label: quoteNumber, href: `/quotes/${quoteId}` },
+                { label: 'Edit' }
+            ]} />
+
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">

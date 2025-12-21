@@ -206,8 +206,8 @@ export default function ClientsPage() {
                                     Client since {formatDate(client.updated_at)}
                                 </div>
                                 <Link
-                                    href="/invoices"
-                                    className="text-sm text-brand hover:text-brand-strong font-medium flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    href={`/invoices?client=${client.id}`}
+                                    className="text-sm text-brand hover:text-brand-strong font-medium flex items-center gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                                 >
                                     View Invoices
                                     <span className="material-symbols-outlined text-sm">arrow_forward</span>

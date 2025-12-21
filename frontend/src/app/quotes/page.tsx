@@ -71,15 +71,45 @@ export default function QuotesPage() {
         return new Date(validUntil) < new Date();
     };
 
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center min-h-[400px]">
-                <div className="flex flex-col items-center gap-3">
-                    <span className="material-symbols-outlined text-4xl text-brand animate-spin">progress_activity</span>
-                    <p className="text-gray-500 dark:text-gray-400">Loading quotes...</p>
+    const viewQuotePDF = (quote: Quote) => {
+        const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+        const url = `${API_BASE}/public/quote/${quote.id}/pdf`;
+        window.open(url, '_blank');
+    };
+
+    // Skeleton loading component
+    const LoadingSkeleton = () => (
+        <div className="space-y-6">
+            <div className="flex items-center justify-between">
+                <div>
+                    <div className="h-8 bg-gray-200 dark:bg-border-dark rounded w-32 mb-2"></div>
+                    <div className="h-4 bg-gray-200 dark:bg-border-dark rounded w-64"></div>
                 </div>
             </div>
-        );
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {[...Array(6)].map((_, i) => (
+                    <div key={i} className="bg-white dark:bg-card-dark rounded-xl border border-gray-200 dark:border-border-dark p-5 animate-pulse">
+                        <div className="flex justify-between mb-4">
+                            <div className="h-5 bg-gray-200 dark:bg-border-dark rounded w-24"></div>
+                            <div className="h-5 bg-gray-200 dark:bg-border-dark rounded-full w-16"></div>
+                        </div>
+                        <div className="h-4 bg-gray-200 dark:bg-border-dark rounded w-3/4 mb-2"></div>
+                        <div className="h-4 bg-gray-200 dark:bg-border-dark rounded w-1/2 mb-4"></div>
+                        <div className="flex justify-between pt-4 border-t border-gray-100 dark:border-border-dark">
+                            <div className="h-6 bg-gray-200 dark:bg-border-dark rounded w-20"></div>
+                            <div className="flex gap-2">
+                                <div className="h-8 w-8 bg-gray-200 dark:bg-border-dark rounded"></div>
+                                <div className="h-8 w-8 bg-gray-200 dark:bg-border-dark rounded"></div>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+
+    if (loading) {
+        return <LoadingSkeleton />;
     }
 
     if (error) {
@@ -201,12 +231,15 @@ export default function QuotesPage() {
                                         >
                                             <span className="material-symbols-outlined text-xl">send</span>
                                         </button>
-                                        <button
-                                            className="p-2.5 rounded-lg bg-green-50 dark:bg-green-900/30 text-green-500 hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors"
-                                            title="Download PDF"
-                                        >
-                                            <span className="material-symbols-outlined text-xl">download</span>
-                                        </button>
+                                        {['sent', 'accepted', 'converted'].includes(quote.status) && (
+                                            <button
+                                                onClick={() => viewQuotePDF(quote)}
+                                                className="p-2.5 rounded-lg bg-green-50 dark:bg-green-900/30 text-green-500 hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors"
+                                                title="View PDF"
+                                            >
+                                                <span className="material-symbols-outlined text-xl">picture_as_pdf</span>
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -299,10 +332,19 @@ export default function QuotesPage() {
                                         </td>
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                                                {['sent', 'accepted', 'converted'].includes(quote.status) && (
+                                                    <button
+                                                        onClick={() => viewQuotePDF(quote)}
+                                                        className="p-2 text-gray-400 hover:text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
+                                                        title="View PDF"
+                                                    >
+                                                        <span className="material-symbols-outlined text-sm">picture_as_pdf</span>
+                                                    </button>
+                                                )}
                                                 <Link
                                                     href={`/quotes/${quote.id}`}
                                                     className="p-2 text-gray-400 hover:text-brand hover:bg-brand/10 rounded-lg transition-colors"
-                                                    title="View Quote"
+                                                    title="View Details"
                                                 >
                                                     <span className="material-symbols-outlined text-sm">visibility</span>
                                                 </Link>

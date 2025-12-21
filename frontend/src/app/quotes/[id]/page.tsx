@@ -6,6 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { api, Quote } from '../../../lib/apiClient';
 import { useToast } from '@/components/ui/Toast';
+import Breadcrumbs, { copyToClipboard } from '@/components/ui/Breadcrumbs';
 
 // Company info - TODO: Move to config/env
 const COMPANY_INFO = {
@@ -122,10 +123,15 @@ export default function QuoteDetailPage() {
     const [displayLang, setDisplayLang] = useState<Language>('en');
     const [showRejectConfirm, setShowRejectConfirm] = useState(false);
 
+    // Link Modal State
+    const [showLinkModal, setShowLinkModal] = useState(false);
+    const [generatedLink, setGeneratedLink] = useState('');
+
     // Ref for PDF generation
     const quotePreviewRef = useRef<HTMLDivElement>(null);
 
     // Handle Send Quote + Download PDF
+    // Handle Send Quote
     const handleSendQuote = async () => {
         if (!quote) return;
         setActionLoading('send');
@@ -134,10 +140,14 @@ export default function QuoteDetailPage() {
             const updatedQuote = await api.sendQuote(quoteId);
             setQuote(updatedQuote);
 
-            // Generate and download PDF
-            await generateAndDownloadPDF();
+            // Construct Link
+            const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api').replace('/api', '');
+            const link = `${baseUrl}/api/public/quote/${quoteId}/pdf`;
 
-            toast.success('Quote sent! PDF downloaded.');
+            setGeneratedLink(link);
+            setShowLinkModal(true);
+
+            toast.success('Quote sent successfully!');
         } catch (error) {
             console.error('Failed to send quote', error);
             toast.error('Failed to send quote');
@@ -450,6 +460,12 @@ export default function QuoteDetailPage() {
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
+            {/* Breadcrumbs */}
+            <Breadcrumbs items={[
+                { label: 'Quotes', href: '/quotes' },
+                { label: quote.quote_number }
+            ]} />
+
             {/* Header with Actions */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
@@ -757,6 +773,57 @@ export default function QuoteDetailPage() {
                                         Yes, Delete All
                                     </>
                                 )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Success Link Modal */}
+            {showLinkModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white dark:bg-card-dark rounded-xl shadow-xl max-w-md w-full p-6 animate-in fade-in zoom-in duration-200">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                                <span className="material-symbols-outlined text-green-600 dark:text-green-400 text-2xl">check_circle</span>
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Quote Sent!</h3>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">Share this link with your client.</p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-2 bg-gray-50 dark:bg-border-dark/50 p-3 rounded-lg border border-gray-200 dark:border-border-dark">
+                                <code className="flex-1 text-sm text-gray-600 dark:text-gray-300 truncate font-mono">
+                                    {generatedLink}
+                                </code>
+                                <button
+                                    onClick={() => {
+                                        navigator.clipboard.writeText(generatedLink);
+                                        toast.success('Link copied!');
+                                    }}
+                                    className="p-2 hover:bg-gray-200 dark:hover:bg-border-dark rounded-md transition-colors text-gray-500"
+                                    title="Copy Link"
+                                >
+                                    <span className="material-symbols-outlined text-lg">content_copy</span>
+                                </button>
+                            </div>
+
+                            <a
+                                href={generatedLink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="block w-full text-center py-2 px-4 border border-brand text-brand rounded-lg hover:bg-brand/5 transition-colors text-sm font-medium"
+                            >
+                                Open PDF in New Tab
+                            </a>
+
+                            <button
+                                onClick={() => setShowLinkModal(false)}
+                                className="w-full btn btn-primary mt-2"
+                            >
+                                Done
                             </button>
                         </div>
                     </div>

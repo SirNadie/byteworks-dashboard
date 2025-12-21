@@ -190,6 +190,12 @@ class Quote(Base):
         nullable=True
     )
     
+    # Notion integration - stores the Notion page ID for syncing
+    notion_page_id: Mapped[str | None] = mapped_column(
+        String(50),
+        nullable=True
+    )
+    
     # Relationships
     quote_items: Mapped[list["QuoteItem"]] = relationship(
         "QuoteItem",

@@ -43,6 +43,51 @@ export interface PaginatedResponse<T> {
     pages: number;
 }
 
+// Dashboard Analytics Types
+export interface DashboardKPIs {
+    new_contacts: number;
+    new_contacts_change: number;
+    pending_quotes: number;
+    pending_quotes_change: number;
+    outstanding_invoices: number;
+    outstanding_change: number;
+    weekly_visits: number;
+    visits_change: number;
+}
+
+export interface QuoteStats {
+    draft: number;
+    sent: number;
+    accepted: number;
+    rejected: number;
+    expired: number;
+    acceptance_rate: number;
+}
+
+export interface RecentContact {
+    id: string;
+    name: string;
+    email: string;
+    source: string;
+    created_at: string;
+}
+
+export interface OverdueInvoice {
+    id: string;
+    invoice_number: string;
+    contact_name: string;
+    total: number;
+    due_date: string;
+    days_overdue: number;
+}
+
+export interface DashboardData {
+    kpis: DashboardKPIs;
+    quote_stats: QuoteStats;
+    recent_contacts: RecentContact[];
+    overdue_invoices: OverdueInvoice[];
+}
+
 class ApiClient {
     private token: string | null = null;
     private listeners: ((token: string | null) => void)[] = [];
@@ -267,6 +312,11 @@ class ApiClient {
             method: 'DELETE',
         });
     }
+
+    // Analytics / Dashboard
+    async getDashboard(): Promise<DashboardData> {
+        return this.request<DashboardData>('/analytics/dashboard');
+    }
 }
 
 // Service interfaces
@@ -445,6 +495,4 @@ export interface MarkPaidResponse {
         due_date: string;
     };
 }
-
 export const api = new ApiClient();
-

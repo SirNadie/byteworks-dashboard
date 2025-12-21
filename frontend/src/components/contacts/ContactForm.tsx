@@ -74,30 +74,32 @@ export default function ContactForm({ isOpen, onClose, onSubmit, initialData, is
 
                     {/* Form */}
                     <div className="flex-1 overflow-y-auto p-6">
-                        <form id="contact-form" onSubmit={handleSubmit} className="space-y-6">
+                        <form id="contact-form" onSubmit={handleSubmit} className="space-y-5">
                             <div>
-                                <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                                     Full Name <span className="text-red-500">*</span>
                                 </label>
                                 <input
                                     type="text"
                                     id="name"
                                     required
-                                    className="block w-full rounded-lg border-gray-300 dark:border-border-dark bg-white dark:bg-card-dark text-gray-900 dark:text-white focus:ring-brand focus:border-brand sm:text-sm py-2"
+                                    className="block w-full rounded-xl border border-gray-300 dark:border-border-dark bg-white dark:bg-card-dark text-gray-900 dark:text-white placeholder:text-gray-400 focus:ring-2 focus:ring-brand focus:border-brand sm:text-sm px-4 py-2.5 shadow-sm transition-colors"
+                                    placeholder="John Doe"
                                     value={formData.name}
                                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                 />
                             </div>
 
                             <div>
-                                <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                                     Email Address <span className="text-red-500">*</span>
                                 </label>
                                 <input
                                     type="email"
                                     id="email"
                                     required
-                                    className="block w-full rounded-lg border-gray-300 dark:border-border-dark bg-white dark:bg-card-dark text-gray-900 dark:text-white focus:ring-brand focus:border-brand sm:text-sm py-2"
+                                    className="block w-full rounded-xl border border-gray-300 dark:border-border-dark bg-white dark:bg-card-dark text-gray-900 dark:text-white placeholder:text-gray-400 focus:ring-2 focus:ring-brand focus:border-brand sm:text-sm px-4 py-2.5 shadow-sm transition-colors"
+                                    placeholder="john@example.com"
                                     value={formData.email}
                                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                                 />
@@ -105,25 +107,27 @@ export default function ContactForm({ isOpen, onClose, onSubmit, initialData, is
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label htmlFor="phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    <label htmlFor="phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                                         Phone Number
                                     </label>
                                     <input
                                         type="tel"
                                         id="phone"
-                                        className="block w-full rounded-lg border-gray-300 dark:border-border-dark bg-white dark:bg-card-dark text-gray-900 dark:text-white focus:ring-brand focus:border-brand sm:text-sm py-2"
+                                        className="block w-full rounded-xl border border-gray-300 dark:border-border-dark bg-white dark:bg-card-dark text-gray-900 dark:text-white placeholder:text-gray-400 focus:ring-2 focus:ring-brand focus:border-brand sm:text-sm px-4 py-2.5 shadow-sm transition-colors"
+                                        placeholder="+1 (555) 000-0000"
                                         value={formData.phone}
                                         onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                                     />
                                 </div>
                                 <div>
-                                    <label htmlFor="company" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    <label htmlFor="company" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                                         Company
                                     </label>
                                     <input
                                         type="text"
                                         id="company"
-                                        className="block w-full rounded-lg border-gray-300 dark:border-border-dark bg-white dark:bg-card-dark text-gray-900 dark:text-white focus:ring-brand focus:border-brand sm:text-sm py-2"
+                                        className="block w-full rounded-xl border border-gray-300 dark:border-border-dark bg-white dark:bg-card-dark text-gray-900 dark:text-white placeholder:text-gray-400 focus:ring-2 focus:ring-brand focus:border-brand sm:text-sm px-4 py-2.5 shadow-sm transition-colors"
+                                        placeholder="Acme Inc."
                                         value={formData.company}
                                         onChange={(e) => setFormData({ ...formData, company: e.target.value })}
                                     />
@@ -132,12 +136,12 @@ export default function ContactForm({ isOpen, onClose, onSubmit, initialData, is
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label htmlFor="source" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    <label htmlFor="source" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                                         Source
                                     </label>
                                     <select
                                         id="source"
-                                        className="block w-full rounded-lg border-gray-300 dark:border-border-dark bg-white dark:bg-card-dark text-gray-900 dark:text-white focus:ring-brand focus:border-brand sm:text-sm py-2"
+                                        className="block w-full rounded-xl border border-gray-300 dark:border-border-dark bg-white dark:bg-card-dark text-gray-900 dark:text-white focus:ring-2 focus:ring-brand focus:border-brand sm:text-sm px-4 py-2.5 shadow-sm transition-colors cursor-pointer"
                                         value={formData.source}
                                         onChange={(e) => setFormData({ ...formData, source: e.target.value })}
                                     >
@@ -150,12 +154,12 @@ export default function ContactForm({ isOpen, onClose, onSubmit, initialData, is
                                     </select>
                                 </div>
                                 <div>
-                                    <label htmlFor="status" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    <label htmlFor="status" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                                         Status
                                     </label>
                                     <select
                                         id="status"
-                                        className="block w-full rounded-lg border-gray-300 dark:border-border-dark bg-white dark:bg-card-dark text-gray-900 dark:text-white focus:ring-brand focus:border-brand sm:text-sm py-2"
+                                        className="block w-full rounded-xl border border-gray-300 dark:border-border-dark bg-white dark:bg-card-dark text-gray-900 dark:text-white focus:ring-2 focus:ring-brand focus:border-brand sm:text-sm px-4 py-2.5 shadow-sm transition-colors cursor-pointer"
                                         value={formData.status}
                                         onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                                     >
@@ -169,13 +173,14 @@ export default function ContactForm({ isOpen, onClose, onSubmit, initialData, is
                             </div>
 
                             <div>
-                                <label htmlFor="notes" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                <label htmlFor="notes" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                                     Notes
                                 </label>
                                 <textarea
                                     id="notes"
                                     rows={4}
-                                    className="block w-full rounded-lg border-gray-300 dark:border-border-dark bg-white dark:bg-card-dark text-gray-900 dark:text-white focus:ring-brand focus:border-brand sm:text-sm py-2"
+                                    className="block w-full rounded-xl border border-gray-300 dark:border-border-dark bg-white dark:bg-card-dark text-gray-900 dark:text-white placeholder:text-gray-400 focus:ring-2 focus:ring-brand focus:border-brand sm:text-sm px-4 py-2.5 shadow-sm transition-colors resize-none"
+                                    placeholder="Add any additional notes about this contact..."
                                     value={formData.notes}
                                     onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                                 />

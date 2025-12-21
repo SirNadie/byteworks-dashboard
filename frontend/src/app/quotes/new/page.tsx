@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { api, Contact, Service, ServiceCreate, QuoteCreate as QuoteCreateType } from '../../../lib/apiClient';
 import { useToast } from '@/components/ui/Toast';
+import Breadcrumbs from '@/components/ui/Breadcrumbs';
 
 // Company info - TODO: Move to config/env
 const COMPANY_INFO = {
@@ -459,6 +460,12 @@ export default function NewQuotePage() {
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
+            {/* Breadcrumbs */}
+            <Breadcrumbs items={[
+                { label: 'Leads', href: '/contacts' },
+                { label: 'New Quote' }
+            ]} />
+
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>

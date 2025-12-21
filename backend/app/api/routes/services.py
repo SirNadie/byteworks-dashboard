@@ -147,7 +147,7 @@ async def delete_service(
     db: DbSession,
     current_user: CurrentUser,
 ):
-    """Delete a service (soft delete by setting is_active=False)."""
+    """Delete a service permanently from the database."""
     result = await db.execute(
         select(Service).where(Service.id == service_id)
     )
@@ -159,6 +159,6 @@ async def delete_service(
             detail="Service not found"
         )
     
-    # Soft delete
-    service.is_active = False
+    # Hard delete - remove from database permanently
+    await db.delete(service)
     await db.flush()

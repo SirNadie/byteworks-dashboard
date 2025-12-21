@@ -103,6 +103,83 @@ async def list_contacts(
     )
 
 
+# NOTE: The /public route is defined BELOW, before the /{contact_id} routes,
+# to ensure proper routing order. In FastAPI, routes with path parameters
+# can intercept static paths if defined first.
+
+@router.post("/public", response_model=ContactResponse, status_code=status.HTTP_201_CREATED)
+async def create_public_contact(
+    contact_data: PublicContactRequest,
+    db: DbSession,
+):
+    """
+    Create a new contact from public website (honeypot protected).
+    Creates entry in Notion and sends email notification.
+    """
+    if contact_data.bot_field:
+        # Honeypot triggered, return fake success
+        from uuid import UUID
+        from datetime import datetime, timezone
+        
+        return ContactResponse(
+            id=UUID('00000000-0000-0000-0000-000000000000'),
+            name="Bot Filtered",
+            email="bot@honeypot.com",
+            source=ContactSource.OTHER,
+            status=ContactStatus.NEW,
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc),
+            phone=None,
+            company=None,
+            notes=None
+        )
+
+    # Determine contact method from data
+    from ...models.contact import ContactMethod
+    contact_method = None
+    if hasattr(contact_data, 'contact_method') and contact_data.contact_method:
+        try:
+            contact_method = ContactMethod(contact_data.contact_method)
+        except ValueError:
+            pass
+
+    # Manual mapping since schemas differ
+    new_contact = Contact(
+        name=contact_data.name,
+        email=contact_data.email,
+        phone=contact_data.phone,
+        notes=contact_data.message,
+        source=ContactSource.WEB_FORM,
+        status=ContactStatus.NEW,
+        contact_method=contact_method
+    )
+    
+    db.add(new_contact)
+    await db.flush()
+    await db.refresh(new_contact)
+    
+    # Send to Notion + Email notification (replacing Discord)
+    from ...services.notifications import notify_new_lead
+    try:
+        result = await notify_new_lead(
+            name=new_contact.name,
+            email=new_contact.email,
+            phone=new_contact.phone,
+            company=new_contact.company,
+            message=new_contact.notes,
+            contact_method=contact_method.value if contact_method else "email",
+            crm_id=None  # Could pass contact ID if needed
+        )
+        if result.get("notion_page_id"):
+            print(f"✅ Created lead in Notion: {new_contact.email}")
+        if result.get("notification_sent"):
+            print(f"✅ Sent email notification for lead: {new_contact.email}")
+    except Exception as e:
+        print(f"❌ Failed to process lead notification: {e}")
+
+    return ContactResponse.model_validate(new_contact)
+
+
 @router.get("/{contact_id}", response_model=ContactResponse)
 async def get_contact(
     contact_id: UUID,
@@ -199,79 +276,6 @@ async def update_contact(
     
     return ContactResponse.model_validate(contact)
 
-
-from ...core.config import settings
-import httpx
-
-# ... (imports existentes)
-
-@router.post("/public", response_model=ContactResponse, status_code=status.HTTP_201_CREATED)
-async def create_public_contact(
-    contact_data: PublicContactRequest,
-    db: DbSession,
-):
-    """
-    Create a new contact from public website (honeypot protected).
-    Sends notification to Discord.
-    """
-    if contact_data.bot_field:
-        # Honeypot triggered, return fake success
-        from uuid import UUID
-        from datetime import datetime, timezone
-        
-        return ContactResponse(
-            id=UUID('00000000-0000-0000-0000-000000000000'),
-            name="Bot Filtered",
-            email="bot@honeypot.com",
-            source=ContactSource.OTHER,
-            status=ContactStatus.NEW,
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc),
-            phone=None,
-            company=None,
-            notes=None
-        )
-
-    # Determine contact method from data
-    from ...models.contact import ContactMethod
-    contact_method = None
-    if hasattr(contact_data, 'contact_method') and contact_data.contact_method:
-        try:
-            contact_method = ContactMethod(contact_data.contact_method)
-        except ValueError:
-            pass
-
-    # Manual mapping since schemas differ
-    new_contact = Contact(
-        name=contact_data.name,
-        email=contact_data.email,
-        phone=contact_data.phone,
-        notes=contact_data.message,
-        source=ContactSource.WEB_FORM,
-        status=ContactStatus.NEW,
-        contact_method=contact_method
-    )
-    
-    db.add(new_contact)
-    await db.flush()
-    await db.refresh(new_contact)
-    
-    # Send to Discord
-    from ...services.discord import notify_new_lead
-    try:
-        await notify_new_lead(
-            name=new_contact.name,
-            email=new_contact.email,
-            phone=new_contact.phone,
-            company=new_contact.company,
-            message=new_contact.notes,
-            contact_method=contact_method.value if contact_method else "email"
-        )
-        print(f"✅ Sent lead {new_contact.email} to Discord")
-    except Exception as e:
-        print(f"❌ Failed to send to Discord: {e}")
-
-    return ContactResponse.model_validate(new_contact)
 
 
 @router.delete("/{contact_id}", status_code=status.HTTP_204_NO_CONTENT)

@@ -19,6 +19,7 @@ from ...schemas.quote import (
     QuoteListResponse,
     QuoteItemResponse,
 )
+from ...core.config import settings
 
 router = APIRouter()
 
@@ -220,7 +221,7 @@ async def send_quote(
     db: DbSession,
     current_user: CurrentUser,
 ):
-    """Mark a quote as sent, set valid_until to 15 days, and send Discord notification."""
+    """Mark a quote as sent, set valid_until to 15 days, and send Notion + Email notification."""
     result = await db.execute(
         select(Quote).where(Quote.id == quote_id)
     )
@@ -246,22 +247,37 @@ async def send_quote(
     await db.flush()
     await db.refresh(quote)
     
-    # Send Discord notification
-    from ...services.discord import notify_new_quote
+    # Send Notion + Email notification (replacing Discord)
+    from ...services.notifications import notify_new_quote
+    
+    # Generate public PDF link
+    base_url = settings.public_api_url
+    pdf_link = f"{base_url}/api/public/quote/{quote.id}/pdf"
+    
     try:
-        await notify_new_quote(
+        notification_result = await notify_new_quote(
             quote_number=quote.quote_number,
             client_name=quote.client_name,
             client_email=quote.client_email,
-            client_phone=quote.client_phone,
-            client_company=quote.client_company,
             total=float(quote.total),
             currency=quote.currency,
             valid_until=quote.valid_until.strftime("%Y-%m-%d"),
+            client_phone=quote.client_phone,
+            client_company=quote.client_company,
+            pdf_link=pdf_link
         )
-        print(f"✅ Sent quote notification to Discord: {quote.quote_number}")
+        
+        # Save Notion page ID for later status updates
+        if notification_result.get("notion_page_id"):
+            quote.notion_page_id = notification_result["notion_page_id"]
+            await db.flush()
+            await db.refresh(quote)
+            print(f"✅ Created quote in Notion: {quote.quote_number} (ID: {quote.notion_page_id})")
+        
+        if notification_result.get("notification_sent"):
+            print(f"✅ Sent email notification for quote: {quote.quote_number}")
     except Exception as e:
-        print(f"❌ Failed to send Discord notification: {e}")
+        print(f"❌ Failed to send quote notification: {e}")
     
     return QuoteResponse.model_validate(quote)
 
@@ -339,6 +355,7 @@ async def convert_quote(
     total = quote.total
     currency = quote.currency
     currency_symbol = "$" if currency == "USD" else "TT$"
+    quote_notion_page_id = quote.notion_page_id  # Capture for Notion update
     
     # Delete the Quote using direct SQL to avoid cascade issues
     await db.execute(
@@ -348,26 +365,40 @@ async def convert_quote(
     await db.flush()
     await db.refresh(invoice)
     
-    # Send Discord notification about conversion
-    from ...services.discord import send_discord_message, get_quotes_webhook
+    # Generate public PDF link for the invoice
+    # Generate public PDF link for the invoice
+    base_url = settings.public_api_url
+    invoice_pdf_link = f"{base_url}/api/public/invoice/{invoice.id}/pdf"
+    
+    # Handle quote-to-invoice conversion in Notion + Email
+    from ...services.notifications import handle_quote_to_invoice_conversion
     try:
-        embed = {
-            "title": "🎉 Quote Converted to Invoice!",
-            "color": 5763719,  # Green color
-            "fields": [
-                {"name": "📋 Quote #", "value": quote_number, "inline": True},
-                {"name": "🧾 Invoice #", "value": invoice_number, "inline": True},
-                {"name": "💰 Total", "value": f"{currency_symbol}{total:,.2f} {currency}", "inline": True},
-                {"name": "👤 Client", "value": client_name, "inline": True},
-                {"name": "🏢 Company", "value": client_company or "N/A", "inline": True},
-                {"name": "📧 Email", "value": client_email, "inline": True},
-            ],
-            "footer": {"text": "ByteWorks CRM - New Client! 🎊"},
-        }
-        await send_discord_message(get_quotes_webhook(), "🎊 **QUOTE CONVERTED TO INVOICE!** New client! 🎊", embed)
-        print(f"✅ Sent quote conversion notification to Discord: {quote_number} → {invoice_number}")
+        conversion_result = await handle_quote_to_invoice_conversion(
+            invoice_number=invoice_number,
+            quote_number=quote_number,
+            client_name=client_name,
+            client_email=client_email,
+            client_phone=contact.phone if contact else None,
+            client_company=client_company,
+            total=float(total),
+            currency=currency,
+            due_date=invoice.due_date,
+            quote_notion_id=quote_notion_page_id,  # Pass the Notion ID for status update
+            invoice_crm_id=None,
+            client_crm_id=None,
+            pdf_link=invoice_pdf_link  # Pass the generated link
+        )
+        if conversion_result.get("client_notion_id"):
+            print(f"✅ Created client in Notion: {client_name}")
+        if conversion_result.get("invoice_notion_id"):
+            # IMPORTANT: Save the Notion page ID to the invoice so we can update its status later
+            invoice.notion_page_id = conversion_result["invoice_notion_id"]
+            await db.commit()
+            print(f"✅ Created invoice in Notion: {invoice_number} (ID: {invoice.notion_page_id})")
+        if conversion_result.get("quote_updated"):
+            print(f"✅ Updated quote status in Notion: {quote_number} -> Accepted")
     except Exception as e:
-        print(f"❌ Failed to send Discord notification: {e}")
+        print(f"❌ Failed to process conversion notification: {e}")
     
     # Return the invoice_id for redirect
     return {"invoice_id": str(invoice.id), "invoice_number": invoice_number}
@@ -467,7 +498,6 @@ async def process_quote_reminders(
     - Marks quotes as expired after valid_until date passes
     """
     from datetime import timedelta, date
-    from ...services.discord import notify_quote_reminder
     
     today = date.today()
     processed = {"reminders_sent": 0, "expired": 0}
@@ -489,23 +519,12 @@ async def process_quote_reminders(
             continue
         
         # Send reminder at day 7-8 (halfway through)
+        # Note: Email reminders can be added here in the future
         if 7 <= days_until_expiry <= 8 and not quote.reminder_sent:
-            try:
-                await notify_quote_reminder(
-                    quote_number=quote.quote_number,
-                    client_name=quote.client_name,
-                    client_email=quote.client_email,
-                    client_phone=quote.client_phone,
-                    total=float(quote.total),
-                    currency=quote.currency,
-                    days_remaining=days_until_expiry,
-                    valid_until=quote.valid_until.strftime("%Y-%m-%d"),
-                )
-                quote.reminder_sent = True
-                processed["reminders_sent"] += 1
-                print(f"📧 Sent reminder for quote {quote.quote_number}")
-            except Exception as e:
-                print(f"❌ Failed to send reminder for {quote.quote_number}: {e}")
+            # Mark as reminder processed (email reminder can be implemented later)
+            quote.reminder_sent = True
+            processed["reminders_sent"] += 1
+            print(f"📧 Quote {quote.quote_number} marked for follow-up (7 days left)")
     
     await db.flush()
     

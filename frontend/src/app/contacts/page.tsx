@@ -99,13 +99,18 @@ export default function LeadsPage() {
         });
         if (!confirmed) return;
 
+        // Optimistic UI: Remove immediately
+        const previousLeads = [...leads];
+        setLeads(prev => prev.filter(l => l.id !== id));
+        toast.success('Lead deleted');
+
         try {
             await api.deleteContact(id);
-            toast.success('Lead deleted successfully');
-            fetchLeads(debouncedSearch, currentPage);
         } catch (error) {
+            // Rollback on error
             console.error('Failed to delete lead', error);
-            toast.error('Failed to delete lead');
+            setLeads(previousLeads);
+            toast.error('Failed to delete lead. Restored.');
         }
     };
 

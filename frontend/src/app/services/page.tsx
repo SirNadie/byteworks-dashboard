@@ -33,6 +33,7 @@ export default function ServicesPage() {
         category: 'other',
         is_active: true,
     });
+    const [savingForm, setSavingForm] = useState(false);
 
     const fetchServices = async () => {
         try {
@@ -51,6 +52,7 @@ export default function ServicesPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setSavingForm(true);
         try {
             if (editingService) {
                 await api.updateService(editingService.id, formData as ServiceUpdate);
@@ -64,6 +66,8 @@ export default function ServicesPage() {
         } catch (error) {
             console.error('Error saving service:', error);
             toast.error('Failed to save service');
+        } finally {
+            setSavingForm(false);
         }
     };
 
@@ -90,13 +94,19 @@ export default function ServicesPage() {
         });
         if (!confirmed) return;
 
+        // Optimistic UI: Remove from list immediately
+        const previousServices = [...services];
+        setServices(prev => prev.filter(s => s.id !== id));
+        toast.success('Service deleted');
+
         try {
             await api.deleteService(id);
-            toast.success('Service deleted successfully');
-            fetchServices();
+            // Success - already removed from UI
         } catch (error) {
+            // Rollback on error
             console.error('Error deleting service:', error);
-            toast.error('Failed to delete service');
+            setServices(previousServices);
+            toast.error('Failed to delete service. Restored.');
         }
     };
 
@@ -162,8 +172,7 @@ export default function ServicesPage() {
                     services.map((service) => (
                         <div
                             key={service.id}
-                            className={`bg-white dark:bg-card-dark rounded-xl border border-gray-200 dark:border-border-dark p-5 hover:shadow-md transition-shadow ${!service.is_active ? 'opacity-60' : ''
-                                }`}
+                            className={`bg-white dark:bg-card-dark rounded-xl border border-gray-200 dark:border-border-dark p-5 hover:shadow-md transition-all duration-300 animate-in fade-in ${!service.is_active ? 'opacity-60' : ''}`}
                         >
                             <div className="flex items-start justify-between mb-3">
                                 <div className="flex-1">
@@ -198,7 +207,7 @@ export default function ServicesPage() {
                                     </button>
                                     <button
                                         onClick={() => handleDelete(service.id)}
-                                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                                        className="p-2 rounded-lg transition-colors text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
                                         title="Delete"
                                     >
                                         <span className="material-symbols-outlined text-xl">delete</span>
@@ -316,8 +325,12 @@ export default function ServicesPage() {
                                 </button>
                                 <button
                                     type="submit"
-                                    className="px-4 py-2 text-sm font-medium text-white bg-brand hover:bg-brand-strong rounded-lg transition-colors"
+                                    disabled={savingForm}
+                                    className="px-4 py-2 text-sm font-medium text-white bg-brand hover:bg-brand-strong rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                                 >
+                                    {savingForm && (
+                                        <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+                                    )}
                                     {editingService ? 'Save Changes' : 'Create Service'}
                                 </button>
                             </div>

@@ -2,83 +2,12 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { api, Invoice, InvoiceListResponse } from '../../lib/apiClient';
 import { useToast, useConfirm } from '@/components/ui/Toast';
 
 const PAGE_SIZE = 10;
 
-// Company info
-const COMPANY_INFO = {
-    name: 'ByteWorks Agency',
-    tagline: 'Digital Solutions',
-    email: 'macrodriguez2512@gmail.com',
-    phone: '+1 (868) 775-9858',
-    website: 'byteworksagency.com',
-};
-
-// Invoice translations
-const TRANSLATIONS = {
-    en: {
-        invoice: 'INVOICE',
-        receipt: 'PAYMENT RECEIPT',
-        from: 'From',
-        billTo: 'Bill To',
-        invoiceDate: 'Invoice Date',
-        dueDate: 'Due Date',
-        paymentDate: 'Payment Date',
-        description: 'Description',
-        qty: 'Qty',
-        price: 'Price',
-        total: 'Total',
-        subtotal: 'Subtotal',
-        tax: 'Tax',
-        amountPaid: 'Amount Paid',
-        notes: 'Notes',
-        paymentTerms: 'Payment Terms',
-        thankYou: 'Thank you for your business!',
-        paymentConfirmed: 'Payment confirmed. Thank you!',
-        paidStamp: 'PAID',
-    },
-    es: {
-        invoice: 'FACTURA',
-        receipt: 'RECIBO DE PAGO',
-        from: 'De',
-        billTo: 'Facturar A',
-        invoiceDate: 'Fecha de Factura',
-        dueDate: 'Fecha de Vencimiento',
-        paymentDate: 'Fecha de Pago',
-        description: 'Descripción',
-        qty: 'Cant.',
-        price: 'Precio',
-        total: 'Total',
-        subtotal: 'Subtotal',
-        tax: 'Impuesto',
-        amountPaid: 'Monto Pagado',
-        notes: 'Notas',
-        paymentTerms: 'Términos de Pago',
-        thankYou: '¡Gracias por su preferencia!',
-        paymentConfirmed: 'Pago confirmado. ¡Gracias!',
-        paidStamp: 'PAGADO',
-    },
-};
-
-// Invoice Payment Terms
-const INVOICE_TERMS = {
-    en: [
-        'Payment is due by the date specified above.',
-        'Late payments may incur a 5% monthly late fee after 7 days.',
-        'For questions about this invoice, please contact us at the email above.',
-        'You retain ownership of your content. ByteWorks retains rights to the platform code.',
-    ],
-    es: [
-        'El pago vence en la fecha especificada arriba.',
-        'Los pagos atrasados pueden incurrir en un cargo del 5% mensual después de 7 días.',
-        'Para preguntas sobre esta factura, contáctenos al correo arriba indicado.',
-        'Conservas la propiedad de tu contenido. ByteWorks retiene los derechos sobre el código.',
-    ],
-};
-
-type Language = 'en' | 'es';
 
 // Status styles
 const STATUS_STYLES: Record<string, string> = {
@@ -89,9 +18,13 @@ const STATUS_STYLES: Record<string, string> = {
 };
 
 export default function InvoicesPage() {
+    const searchParams = useSearchParams();
+    const clientFilter = searchParams.get('client');
+
     const [invoices, setInvoices] = useState<Invoice[]>([]);
     const [loading, setLoading] = useState(true);
     const [statusFilter, setStatusFilter] = useState<string>('all');
+    const [clientName, setClientName] = useState<string | null>(null);
 
     const toast = useToast();
     const confirm = useConfirm();
@@ -104,6 +37,11 @@ export default function InvoicesPage() {
     // Action loading states
     const [markingPaidId, setMarkingPaidId] = useState<string | null>(null);
 
+    // Payment method modal state
+    const [showPaymentModal, setShowPaymentModal] = useState(false);
+    const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+    const [paymentMethod, setPaymentMethod] = useState<string>('Transfer');
+
     const fetchInvoices = useCallback(async (page: number, status: string) => {
         setLoading(true);
         try {
@@ -114,17 +52,25 @@ export default function InvoicesPage() {
             if (status !== 'all') {
                 params.status = status;
             }
+            if (clientFilter) {
+                params.contact_id = clientFilter;
+            }
             const response: InvoiceListResponse = await api.getInvoices(params);
             setInvoices(response.items);
             setTotalPages(response.pages);
             setTotalItems(response.total);
+
+            // Get client name from first invoice if filtering by client
+            if (clientFilter && response.items.length > 0 && response.items[0].contact) {
+                setClientName(response.items[0].contact.name);
+            }
         } catch (error) {
             console.error('Failed to fetch invoices', error);
             toast.error('Failed to load invoices');
         } finally {
             setLoading(false);
         }
-    }, [toast]);
+    }, [toast, clientFilter]);
 
     useEffect(() => {
         fetchInvoices(currentPage, statusFilter);
@@ -135,23 +81,32 @@ export default function InvoicesPage() {
         setCurrentPage(1);
     };
 
-    const handleMarkPaid = async (invoice: Invoice) => {
-        setMarkingPaidId(invoice.id);
-        try {
-            // Call API - returns paid invoice + next invoice info
-            const response = await api.markInvoicePaid(invoice.id);
-            const paymentDate = new Date().toISOString();
+    // Open the payment modal
+    const handleMarkPaidClick = (invoice: Invoice) => {
+        setSelectedInvoice(invoice);
+        setPaymentMethod('Transfer'); // Default
+        setShowPaymentModal(true);
+    };
 
-            // Generate and download the payment receipt
-            await generatePaymentReceipt(invoice, paymentDate);
+    // Confirm and process payment
+    const handleConfirmPayment = async () => {
+        if (!selectedInvoice) return;
+
+        setShowPaymentModal(false);
+        setMarkingPaidId(selectedInvoice.id);
+
+        try {
+            // Call API with selected payment method
+            const response = await api.markInvoicePaid(selectedInvoice.id, paymentMethod);
+            const paymentDate = new Date().toISOString();
 
             // Show success with next invoice info
             if (response.next_invoice) {
                 toast.success(
-                    `✅ Payment confirmed! Receipt downloaded. Next invoice ${response.next_invoice.invoice_number} created (due: ${new Date(response.next_invoice.due_date).toLocaleDateString()})`,
+                    `✅ Payment confirmed! Next invoice ${response.next_invoice.invoice_number} created (due: ${new Date(response.next_invoice.due_date).toLocaleDateString()})`,
                 );
             } else {
-                toast.success(`Invoice ${invoice.invoice_number} marked as paid! Receipt downloaded.`);
+                toast.success(`Invoice ${selectedInvoice.invoice_number} marked as paid!`);
             }
 
             fetchInvoices(currentPage, statusFilter);
@@ -160,6 +115,7 @@ export default function InvoicesPage() {
             toast.error('Failed to mark as paid');
         } finally {
             setMarkingPaidId(null);
+            setSelectedInvoice(null);
         }
     };
 
@@ -173,13 +129,18 @@ export default function InvoicesPage() {
         });
         if (!confirmed) return;
 
+        // Optimistic UI: Remove immediately
+        const previousInvoices = [...invoices];
+        setInvoices(prev => prev.filter(i => i.id !== invoice.id));
+        toast.success('Invoice deleted');
+
         try {
             await api.deleteInvoice(invoice.id);
-            toast.success('Invoice deleted successfully');
-            fetchInvoices(currentPage, statusFilter);
         } catch (error) {
+            // Rollback on error
             console.error('Failed to delete invoice', error);
-            toast.error('Failed to delete invoice');
+            setInvoices(previousInvoices);
+            toast.error('Failed to delete invoice. Restored.');
         }
     };
 
@@ -202,330 +163,11 @@ export default function InvoicesPage() {
         return status === 'pending' && new Date(dueDate) < new Date();
     };
 
-    // State for download loading
-    const [downloadingId, setDownloadingId] = useState<string | null>(null);
-
-    // Generate Invoice PDF
-    const generateInvoicePDF = async (invoice: Invoice, lang: Language = 'en') => {
-        setDownloadingId(invoice.id);
-        try {
-            const { jsPDF } = await import('jspdf');
-            const t = TRANSLATIONS[lang];
-
-            // Create hidden iframe
-            const iframe = document.createElement('iframe');
-            iframe.style.position = 'absolute';
-            iframe.style.left = '-9999px';
-            iframe.style.width = '800px';
-            iframe.style.height = '1200px';
-            document.body.appendChild(iframe);
-
-            const doc = iframe.contentDocument;
-            if (!doc) {
-                document.body.removeChild(iframe);
-                return;
-            }
-
-            // Build HTML
-            doc.open();
-            doc.write(`
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <style>
-                        * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
-                        body { padding: 40px; background: white; color: #1a1a1a; position: relative; }
-                        .header { display: flex; justify-content: space-between; border-bottom: 2px solid #e5e5e5; padding-bottom: 20px; margin-bottom: 20px; }
-                        .company-name { font-size: 24px; font-weight: bold; color: #1a1a1a; }
-                        .company-tagline { font-size: 12px; color: #666; }
-                        .invoice-title { font-size: 28px; font-weight: bold; color: #7c3aed; text-align: right; }
-                        .invoice-number { font-size: 14px; color: #666; text-align: right; }
-                        .section { margin-bottom: 20px; }
-                        .section-title { font-size: 12px; font-weight: bold; color: #7c3aed; margin-bottom: 8px; text-transform: uppercase; }
-                        .info-row { font-size: 14px; margin-bottom: 4px; }
-                        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-                        th { background: #f5f5f5; padding: 12px; text-align: left; font-size: 12px; font-weight: bold; color: #666; text-transform: uppercase; }
-                        td { padding: 12px; border-bottom: 1px solid #e5e5e5; font-size: 14px; }
-                        .text-right { text-align: right; }
-                        .totals { margin-top: 20px; }
-                        .total-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px; }
-                        .total-row.grand { font-size: 18px; font-weight: bold; color: #7c3aed; border-top: 2px solid #e5e5e5; padding-top: 12px; }
-                        .terms { margin-top: 20px; padding: 16px; background: #fafafa; border-radius: 4px; }
-                        .terms-title { font-size: 11px; font-weight: bold; color: #7c3aed; margin-bottom: 8px; }
-                        .terms-list { font-size: 10px; color: #666; }
-                        .terms-list li { margin-bottom: 4px; list-style-type: disc; margin-left: 16px; }
-                        .logo { width: 48px; height: 48px; margin-right: 12px; }
-                        .header-left { display: flex; align-items: flex-start; }
-                        .footer { text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e5e5; font-size: 12px; color: #999; }
-                        .paid-stamp { position: absolute; top: 200px; right: 60px; font-size: 48px; font-weight: bold; color: rgba(34, 197, 94, 0.3); transform: rotate(-15deg); border: 4px solid rgba(34, 197, 94, 0.3); padding: 10px 20px; border-radius: 8px; }
-                    </style>
-                </head>
-                <body>
-                    ${invoice.status === 'paid' ? `<div class="paid-stamp">${t.paidStamp}</div>` : ''}
-                    <div class="header">
-                        <div class="header-left">
-                            <img class="logo" src="${window.location.origin}/logo.png" alt="Logo" />
-                            <div>
-                                <div class="company-name">${COMPANY_INFO.name}</div>
-                                <div class="company-tagline">${COMPANY_INFO.tagline}</div>
-                                <div style="margin-top: 8px; font-size: 12px; color: #666;">
-                                    ${COMPANY_INFO.email}<br/>
-                                    ${COMPANY_INFO.phone}<br/>
-                                    ${COMPANY_INFO.website}
-                                </div>
-                            </div>
-                        </div>
-                        <div>
-                            <div class="invoice-title">${t.invoice}</div>
-                            <div class="invoice-number">#${invoice.invoice_number}</div>
-                            <div style="margin-top: 8px; font-size: 12px; color: #666; text-align: right;">
-                                ${t.invoiceDate}: ${new Date(invoice.created_at).toLocaleDateString()}<br/>
-                                ${t.dueDate}: ${new Date(invoice.due_date).toLocaleDateString()}
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>${t.description}</th>
-                                <th class="text-right">${t.qty}</th>
-                                <th class="text-right">${t.price}</th>
-                                <th class="text-right">${t.total}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${invoice.items.map(item => `
-                                <tr>
-                                    <td>${item.description}</td>
-                                    <td class="text-right">${item.quantity}</td>
-                                    <td class="text-right">$${Number(item.unit_price).toFixed(2)}</td>
-                                    <td class="text-right">$${(item.quantity * Number(item.unit_price)).toFixed(2)}</td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                    
-                    <div class="totals">
-                        <div class="total-row">
-                            <span>${t.subtotal}</span>
-                            <span>$${Number(invoice.subtotal).toFixed(2)}</span>
-                        </div>
-                        ${Number(invoice.tax) > 0 ? `
-                            <div class="total-row">
-                                <span>${t.tax} (${invoice.tax_rate}%)</span>
-                                <span>$${Number(invoice.tax).toFixed(2)}</span>
-                            </div>
-                        ` : ''}
-                        <div class="total-row grand">
-                            <span>${t.total}</span>
-                            <span>$${Number(invoice.total).toFixed(2)} USD</span>
-                        </div>
-                    </div>
-                    
-                    ${invoice.notes ? `
-                        <div class="terms" style="background: #f9fafb;">
-                            <div class="terms-title">${t.notes}</div>
-                            <div style="font-size: 12px; color: #666;">${invoice.notes}</div>
-                        </div>
-                    ` : ''}
-                    
-                    <div class="terms">
-                        <div class="terms-title">${t.paymentTerms}</div>
-                        <ul class="terms-list">
-                            ${INVOICE_TERMS[lang].map((term: string) => `<li>${term}</li>`).join('')}
-                        </ul>
-                    </div>
-                    
-                    <div class="footer">
-                        <p>${t.thankYou}</p>
-                        <p>${COMPANY_INFO.website}</p>
-                    </div>
-                </body>
-                </html>
-            `);
-            doc.close();
-
-            await new Promise(resolve => setTimeout(resolve, 100));
-
-            const html2canvas = (await import('html2canvas')).default;
-            const canvas = await html2canvas(doc.body, {
-                scale: 2,
-                useCORS: true,
-                backgroundColor: '#ffffff',
-                logging: false,
-            });
-
-            const imgData = canvas.toDataURL('image/jpeg', 0.95);
-            const pdf = new jsPDF({
-                orientation: 'portrait',
-                unit: 'mm',
-                format: 'a4',
-            });
-
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = pdf.internal.pageSize.getHeight();
-            const imgWidth = pdfWidth - 20;
-            const imgHeight = (canvas.height * imgWidth) / canvas.width;
-            const finalHeight = Math.min(imgHeight, pdfHeight - 20);
-            const finalWidth = (canvas.width * finalHeight) / canvas.height;
-
-            pdf.addImage(imgData, 'JPEG', 10, 10, Math.min(imgWidth, finalWidth), finalHeight);
-
-            const filename = `Invoice-${invoice.invoice_number}.pdf`;
-            pdf.save(filename);
-
-            document.body.removeChild(iframe);
-            toast.success('Invoice PDF downloaded!');
-        } catch (error) {
-            console.error('Failed to generate PDF', error);
-            toast.error('Failed to download PDF');
-        } finally {
-            setDownloadingId(null);
-        }
-    };
-
-    // Generate Payment Receipt PDF
-    const generatePaymentReceipt = async (invoice: Invoice, paymentDate: string, lang: Language = 'en') => {
-        try {
-            const { jsPDF } = await import('jspdf');
-            const t = TRANSLATIONS[lang];
-
-            const iframe = document.createElement('iframe');
-            iframe.style.position = 'absolute';
-            iframe.style.left = '-9999px';
-            iframe.style.width = '800px';
-            iframe.style.height = '1000px';
-            document.body.appendChild(iframe);
-
-            const doc = iframe.contentDocument;
-            if (!doc) {
-                document.body.removeChild(iframe);
-                return;
-            }
-
-            doc.open();
-            doc.write(`
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <style>
-                        * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
-                        body { padding: 40px; background: white; color: #1a1a1a; position: relative; }
-                        .header { display: flex; justify-content: space-between; border-bottom: 2px solid #22c55e; padding-bottom: 20px; margin-bottom: 30px; }
-                        .company-name { font-size: 24px; font-weight: bold; color: #1a1a1a; }
-                        .company-tagline { font-size: 12px; color: #666; }
-                        .receipt-title { font-size: 28px; font-weight: bold; color: #22c55e; text-align: right; }
-                        .receipt-number { font-size: 14px; color: #666; text-align: right; }
-                        .section { margin-bottom: 20px; }
-                        .section-title { font-size: 12px; font-weight: bold; color: #22c55e; margin-bottom: 8px; text-transform: uppercase; }
-                        .info-row { font-size: 14px; margin-bottom: 4px; }
-                        .payment-box { background: #f0fdf4; border: 2px solid #22c55e; border-radius: 8px; padding: 24px; margin: 30px 0; text-align: center; }
-                        .payment-amount { font-size: 36px; font-weight: bold; color: #22c55e; }
-                        .payment-label { font-size: 14px; color: #666; margin-top: 8px; }
-                        .logo { width: 48px; height: 48px; margin-right: 12px; }
-                        .header-left { display: flex; align-items: flex-start; }
-                        .paid-stamp { position: absolute; top: 180px; right: 60px; font-size: 48px; font-weight: bold; color: rgba(34, 197, 94, 0.3); transform: rotate(-15deg); border: 4px solid rgba(34, 197, 94, 0.3); padding: 10px 20px; border-radius: 8px; }
-                        .footer { text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e5e5; font-size: 12px; color: #999; }
-                        .details-table { width: 100%; margin: 20px 0; }
-                        .details-table td { padding: 8px 0; border-bottom: 1px solid #e5e5e5; }
-                        .details-table td:first-child { color: #666; font-size: 14px; }
-                        .details-table td:last-child { text-align: right; font-weight: 500; }
-                    </style>
-                </head>
-                <body>
-                    <div class="paid-stamp">${t.paidStamp}</div>
-                    <div class="header">
-                        <div class="header-left">
-                            <img class="logo" src="${window.location.origin}/logo.png" alt="Logo" />
-                            <div>
-                                <div class="company-name">${COMPANY_INFO.name}</div>
-                                <div class="company-tagline">${COMPANY_INFO.tagline}</div>
-                                <div style="margin-top: 8px; font-size: 12px; color: #666;">
-                                    ${COMPANY_INFO.email}<br/>
-                                    ${COMPANY_INFO.phone}
-                                </div>
-                            </div>
-                        </div>
-                        <div>
-                            <div class="receipt-title">${t.receipt}</div>
-                            <div class="receipt-number">#${invoice.invoice_number}</div>
-                        </div>
-                    </div>
-                    
-                    <div class="payment-box">
-                        <div class="payment-amount">$${Number(invoice.total).toFixed(2)} USD</div>
-                        <div class="payment-label">${t.amountPaid}</div>
-                    </div>
-                    
-                    <table class="details-table">
-                        <tr>
-                            <td>${t.invoiceDate}</td>
-                            <td>${new Date(invoice.created_at).toLocaleDateString()}</td>
-                        </tr>
-                        <tr>
-                            <td>${t.paymentDate}</td>
-                            <td style="color: #22c55e; font-weight: bold;">${new Date(paymentDate).toLocaleDateString()}</td>
-                        </tr>
-                        <tr>
-                            <td>${t.subtotal}</td>
-                            <td>$${Number(invoice.subtotal).toFixed(2)}</td>
-                        </tr>
-                        ${Number(invoice.tax) > 0 ? `
-                        <tr>
-                            <td>${t.tax} (${invoice.tax_rate}%)</td>
-                            <td>$${Number(invoice.tax).toFixed(2)}</td>
-                        </tr>
-                        ` : ''}
-                        <tr style="border-bottom: none;">
-                            <td style="font-weight: bold;">${t.total}</td>
-                            <td style="font-weight: bold; font-size: 18px;">$${Number(invoice.total).toFixed(2)}</td>
-                        </tr>
-                    </table>
-                    
-                    <div class="footer">
-                        <p style="font-size: 16px; color: #22c55e; margin-bottom: 8px;">✓ ${t.paymentConfirmed}</p>
-                        <p>${t.thankYou}</p>
-                        <p>${COMPANY_INFO.website}</p>
-                    </div>
-                </body>
-                </html>
-            `);
-            doc.close();
-
-            await new Promise(resolve => setTimeout(resolve, 100));
-
-            const html2canvas = (await import('html2canvas')).default;
-            const canvas = await html2canvas(doc.body, {
-                scale: 2,
-                useCORS: true,
-                backgroundColor: '#ffffff',
-                logging: false,
-            });
-
-            const imgData = canvas.toDataURL('image/jpeg', 0.95);
-            const pdf = new jsPDF({
-                orientation: 'portrait',
-                unit: 'mm',
-                format: 'a4',
-            });
-
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = pdf.internal.pageSize.getHeight();
-            const imgWidth = pdfWidth - 20;
-            const imgHeight = (canvas.height * imgWidth) / canvas.width;
-            const finalHeight = Math.min(imgHeight, pdfHeight - 20);
-            const finalWidth = (canvas.width * finalHeight) / canvas.height;
-
-            pdf.addImage(imgData, 'JPEG', 10, 10, Math.min(imgWidth, finalWidth), finalHeight);
-
-            const filename = `Receipt-${invoice.invoice_number}.pdf`;
-            pdf.save(filename);
-
-            document.body.removeChild(iframe);
-        } catch (error) {
-            console.error('Failed to generate receipt', error);
-        }
+    // View Invoice PDF (Backend Link)
+    const viewInvoicePDF = (invoice: Invoice) => {
+        const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+        const url = `${API_BASE}/public/invoice/${invoice.id}/pdf`;
+        window.open(url, '_blank');
     };
 
     // Calculate stats
@@ -538,9 +180,28 @@ export default function InvoicesPage() {
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-display font-bold text-gray-900 dark:text-white">Invoices</h1>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Manage client billing and payments.</p>
+                    <h1 className="text-2xl font-display font-bold text-gray-900 dark:text-white">
+                        Invoices
+                        {clientName && (
+                            <span className="text-brand"> - {clientName}</span>
+                        )}
+                    </h1>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {clientFilter
+                            ? `Showing invoices for ${clientName || 'this client'}`
+                            : 'Manage client billing and payments.'
+                        }
+                    </p>
                 </div>
+                {clientFilter && (
+                    <Link
+                        href="/invoices"
+                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-border-dark text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                    >
+                        <span className="material-symbols-outlined text-sm">close</span>
+                        Clear filter
+                    </Link>
+                )}
             </div>
 
             {/* Stats Cards */}
@@ -697,7 +358,7 @@ export default function InvoicesPage() {
                                     <div className="flex items-center gap-2 pt-2 border-t border-gray-100 dark:border-border-dark">
                                         {invoice.status === 'pending' && (
                                             <button
-                                                onClick={() => handleMarkPaid(invoice)}
+                                                onClick={() => handleMarkPaidClick(invoice)}
                                                 disabled={markingPaidId === invoice.id}
                                                 className="flex-1 px-3 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-1 disabled:opacity-50"
                                             >
@@ -710,16 +371,11 @@ export default function InvoicesPage() {
                                             </button>
                                         )}
                                         <button
-                                            onClick={() => generateInvoicePDF(invoice)}
-                                            disabled={downloadingId === invoice.id}
-                                            className="flex-1 px-3 py-2 bg-brand hover:bg-brand-strong text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-1 disabled:opacity-50"
+                                            onClick={() => viewInvoicePDF(invoice)}
+                                            className="flex-1 px-3 py-2 bg-brand hover:bg-brand-strong text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-1"
                                         >
-                                            {downloadingId === invoice.id ? (
-                                                <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
-                                            ) : (
-                                                <span className="material-symbols-outlined text-sm">download</span>
-                                            )}
-                                            Download
+                                            <span className="material-symbols-outlined text-sm">visibility</span>
+                                            View Invoice
                                         </button>
                                         <button
                                             onClick={() => handleDelete(invoice)}
@@ -794,7 +450,7 @@ export default function InvoicesPage() {
                                     <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                         {invoice.status === 'pending' && (
                                             <button
-                                                onClick={() => handleMarkPaid(invoice)}
+                                                onClick={() => handleMarkPaidClick(invoice)}
                                                 disabled={markingPaidId === invoice.id}
                                                 className="px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-1 disabled:opacity-50"
                                             >
@@ -807,17 +463,12 @@ export default function InvoicesPage() {
                                             </button>
                                         )}
                                         <button
-                                            onClick={() => generateInvoicePDF(invoice)}
-                                            disabled={downloadingId === invoice.id}
-                                            className="px-3 py-1.5 bg-brand hover:bg-brand-strong text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-1 disabled:opacity-50"
-                                            title="Download PDF"
+                                            onClick={() => viewInvoicePDF(invoice)}
+                                            className="px-3 py-1.5 bg-brand hover:bg-brand-strong text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-1"
+                                            title="View Invoice"
                                         >
-                                            {downloadingId === invoice.id ? (
-                                                <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
-                                            ) : (
-                                                <span className="material-symbols-outlined text-sm">download</span>
-                                            )}
-                                            PDF
+                                            <span className="material-symbols-outlined text-sm">visibility</span>
+                                            View
                                         </button>
                                         <button
                                             onClick={() => handleDelete(invoice)}
@@ -864,6 +515,76 @@ export default function InvoicesPage() {
                             </div>
                         </div>
                     )}
+                </div>
+            )}
+
+            {/* Payment Method Modal */}
+            {showPaymentModal && selectedInvoice && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white dark:bg-card-dark rounded-2xl shadow-2xl border border-gray-200 dark:border-border-dark w-full max-w-md animate-in zoom-in-95 duration-200">
+                        {/* Modal Header */}
+                        <div className="p-6 border-b border-gray-200 dark:border-border-dark">
+                            <div className="flex items-center gap-3">
+                                <div className="size-12 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                                    <span className="material-symbols-outlined text-2xl text-green-600 dark:text-green-400">payments</span>
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                                        Confirm Payment
+                                    </h3>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                                        {selectedInvoice.invoice_number}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Modal Body */}
+                        <div className="p-6 space-y-4">
+                            {/* Invoice Amount */}
+                            <div className="bg-gray-50 dark:bg-border-dark rounded-xl p-4 text-center">
+                                <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Amount to Pay</p>
+                                <p className="text-3xl font-bold text-gray-900 dark:text-white">
+                                    {formatCurrency(selectedInvoice.total)}
+                                </p>
+                            </div>
+
+                            {/* Payment Method Select */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Payment Method
+                                </label>
+                                <select
+                                    value={paymentMethod}
+                                    onChange={(e) => setPaymentMethod(e.target.value)}
+                                    className="w-full px-4 py-3 bg-white dark:bg-border-dark border border-gray-300 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                                >
+                                    <option value="Transfer">Transfer</option>
+                                    <option value="Cash">Cash</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        {/* Modal Footer */}
+                        <div className="p-6 border-t border-gray-200 dark:border-border-dark flex gap-3">
+                            <button
+                                onClick={() => {
+                                    setShowPaymentModal(false);
+                                    setSelectedInvoice(null);
+                                }}
+                                className="flex-1 px-4 py-2.5 bg-gray-100 dark:bg-border-dark text-gray-700 dark:text-gray-300 font-medium rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleConfirmPayment}
+                                className="flex-1 px-4 py-2.5 bg-green-500 hover:bg-green-600 text-white font-medium rounded-xl transition-colors flex items-center justify-center gap-2"
+                            >
+                                <span className="material-symbols-outlined text-lg">check</span>
+                                Confirm Payment
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

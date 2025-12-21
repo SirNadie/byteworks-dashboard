@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     app_name: str = "ByteWorks Dashboard"
     debug: bool = False
     api_prefix: str = "/api"
+    public_api_url: str = "http://localhost:8000"  # Override in production!
     
     # Database
     database_url: str = "postgresql+asyncpg://user:password@localhost/byteworks"
@@ -32,7 +33,7 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 1440  # 24 hours
     
     # CORS
-    allowed_origins: str = "http://localhost:3000,http://localhost:8000,http://127.0.0.1:3000,https://portal.byteworksagency.com,https://byteworksagency.com,https://www.byteworksagency.com"
+    allowed_origins: str = "http://localhost:3000,http://localhost:5173,http://localhost:8000,http://127.0.0.1:3000,https://portal.byteworksagency.com,https://byteworksagency.com,https://www.byteworksagency.com"
     
     @property
     def cors_origins(self) -> List[str]:
@@ -48,16 +49,32 @@ class Settings(BaseSettings):
     # Integrations
     make_webhook_url: str = ""
     
-    # Discord Webhooks
-    discord_leads_webhook: str = ""
-    discord_quotes_webhook: str = ""
+    # Notion Integration
+    notion_token: str = ""
+    notion_leads_db_id: str = ""
+    notion_clients_db_id: str = ""
+    notion_quotes_db_id: str = ""
+    notion_invoices_db_id: str = ""
+    notion_payments_db_id: str = ""
+    
+    # Gmail SMTP (for notifications)
+    gmail_address: str = ""
+    gmail_app_password: str = ""
+    notification_email: str = ""  # Email to receive notifications
+    
+    # Notification Channel: "email" or "whatsapp" (future)
+    notification_channel: str = "email"
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        if self.discord_leads_webhook:
-            print(f"✅ Discord Leads Webhook configured")
-        if self.discord_quotes_webhook:
-            print(f"✅ Discord Quotes Webhook configured")
+        # Notion
+        if self.notion_token:
+            print(f"✅ Notion Integration configured")
+        if self.notion_leads_db_id:
+            print(f"✅ Notion databases configured")
+        # Gmail
+        if self.gmail_address and self.gmail_app_password:
+            print(f"✅ Gmail notifications configured → {self.notification_email}")
 
 
 @lru_cache()

@@ -129,6 +129,12 @@ class Invoice(Base):
         nullable=False
     )
     
+    # Notion integration - stores the Notion page ID for syncing
+    notion_page_id: Mapped[str | None] = mapped_column(
+        String(50),
+        nullable=True
+    )
+    
     # Relationships
     quote = relationship("Quote", back_populates="invoice")
     contact = relationship("Contact", back_populates="invoices")

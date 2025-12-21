@@ -17,6 +17,7 @@ from ...schemas.invoice import (
     InvoiceCreate, InvoiceUpdate, InvoiceResponse, 
     InvoiceListResponse, InvoiceFromQuote, InvoiceMarkPaid
 )
+from ...core.config import settings
 
 router = APIRouter()
 
@@ -183,17 +184,68 @@ async def mark_invoice_paid(invoice_id: UUID, data: InvoiceMarkPaid, db: DbSessi
     Returns the paid invoice and the new invoice info.
     """
     from datetime import date, timedelta
+    from sqlalchemy.orm import selectinload
     
-    result = await db.execute(select(Invoice).where(Invoice.id == invoice_id))
+    # Load invoice with contact info for notification
+    result = await db.execute(
+        select(Invoice)
+        .options(selectinload(Invoice.contact))
+        .where(Invoice.id == invoice_id)
+    )
     invoice = result.scalar_one_or_none()
     
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
     
     # Mark as paid
+    print(f"📝 Marking invoice {invoice.invoice_number} as paid (current status: {invoice.status})")
     invoice.mark_as_paid(data.payment_method)
+    print(f"📝 After mark_as_paid: status = {invoice.status}, paid_at = {invoice.paid_at}")
+    
     await db.flush()
-    await db.refresh(invoice)
+    await db.commit()  # Commit immediately to ensure status is saved before notifications
+    
+    # Re-fetch the invoice to confirm the status was saved
+    result = await db.execute(
+        select(Invoice).where(Invoice.id == invoice_id)
+    )
+    invoice = result.scalar_one_or_none()
+    print(f"✅ After commit and re-fetch: status = {invoice.status}")
+    
+    # Handle payment notification (Notion + Email)
+    try:
+        from ...services.notifications import handle_payment_received
+        
+        # Log the Notion page ID status
+        if invoice.notion_page_id:
+            print(f"📝 Invoice {invoice.invoice_number} has Notion ID: {invoice.notion_page_id}")
+        else:
+            print(f"⚠️ Invoice {invoice.invoice_number} has NO Notion ID - status won't update in Notion")
+        
+        # Generate generic link structure
+        base_url = settings.public_api_url
+        receipt_link = f"{base_url}/api/public/receipt/{invoice.id}/pdf"
+        
+        payment_result = await handle_payment_received(
+            invoice_number=invoice.invoice_number,
+            client_name=invoice.contact.name if invoice.contact else "Unknown Client",
+            amount=float(invoice.total),
+            currency="USD",  # Default currency
+            method=data.payment_method or "Zelle",
+            payment_date=invoice.paid_at.date() if invoice.paid_at else date.today(),
+            invoice_notion_id=invoice.notion_page_id,  # Pass Notion ID to update status
+            client_notion_id=None,
+            invoice_crm_id=None,
+            receipt_link=receipt_link
+        )
+        if payment_result.get("payment_notion_id"):
+            print(f"✅ Created payment in Notion for {invoice.invoice_number}")
+        if payment_result.get("invoice_updated"):
+            print(f"✅ Updated invoice status to 'Paid' in Notion for {invoice.invoice_number}")
+        if payment_result.get("notification_sent"):
+            print(f"✅ Payment notification sent for {invoice.invoice_number}")
+    except Exception as e:
+        print(f"❌ Failed to process payment notification: {e}")
     
     # Generate next month's invoice
     next_invoice_number = await generate_invoice_number(db)
@@ -216,9 +268,55 @@ async def mark_invoice_paid(invoice_id: UUID, data: InvoiceMarkPaid, db: DbSessi
     )
     db.add(next_invoice)
     await db.flush()
+    await db.commit()  # Commit the new invoice
     await db.refresh(next_invoice)
     
     print(f"✅ Created next month invoice: {next_invoice_number} (due: {next_due_date})")
+    
+    # Create the new invoice in Notion
+    try:
+        # Generate public PDF link for the invoice
+        base_url = settings.public_api_url
+        next_invoice_pdf_link = f"{base_url}/api/public/invoice/{next_invoice.id}/pdf"
+
+        from ...services.notion import create_invoice_in_notion
+        next_invoice_notion_id = await create_invoice_in_notion(
+            invoice_number=next_invoice.invoice_number,
+            total=float(next_invoice.total),
+            currency="USD",
+            status="Pending",
+            due_date=next_invoice.due_date,
+            client_notion_id=None,  # TODO: Could store client's Notion ID in Contact model
+            quote_notion_id=None,
+            crm_id=None,
+            pdf_link=next_invoice_pdf_link
+        )
+        if next_invoice_notion_id:
+            # Save the Notion page ID to our database
+            next_invoice.notion_page_id = next_invoice_notion_id
+            await db.commit()
+            print(f"✅ Created next month invoice in Notion: {next_invoice_notion_id}")
+
+        # Send email notification for the NEW invoice
+        from ...services.email import notify_new_invoice
+        
+        contact = invoice.contact
+        if contact and contact.email:
+            await notify_new_invoice(
+                invoice_number=next_invoice.invoice_number,
+                client_name=contact.name,
+                client_email=contact.email,
+                client_phone=contact.phone,
+                client_company=contact.company,
+                total=float(next_invoice.total),
+                currency="USD",
+                due_date=next_invoice.due_date.strftime("%Y-%m-%d"),
+                pdf_link=next_invoice_pdf_link
+            )
+            print(f"✅ Sent new invoice notification to {contact.email}")
+
+    except Exception as e:
+        print(f"❌ Failed to process new invoice notification/Notion: {e}")
     
     # Build response manually to avoid lazy loading contact
     paid_invoice_data = {
