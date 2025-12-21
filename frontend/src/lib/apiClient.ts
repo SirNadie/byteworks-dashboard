@@ -221,8 +221,51 @@ class ApiClient {
         return this.request<Quote>(`/quotes/${id}`);
     }
 
-    async getInvoices() {
-        return this.request<any>('/invoices');
+    async updateQuote(id: string, data: QuoteUpdate): Promise<Quote> {
+        return this.request<Quote>(`/quotes/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    }
+
+    async sendQuote(id: string): Promise<Quote> {
+        return this.request<Quote>(`/quotes/${id}/send`, {
+            method: 'POST',
+        });
+    }
+
+    async convertQuote(id: string): Promise<{ invoice_id: string; invoice_number: string }> {
+        return this.request<{ invoice_id: string; invoice_number: string }>(`/quotes/${id}/convert`, {
+            method: 'POST',
+        });
+    }
+
+    async rejectQuote(id: string): Promise<void> {
+        return this.request<void>(`/quotes/${id}/reject`, {
+            method: 'POST',
+        });
+    }
+
+    async getInvoices(params: Record<string, string> = {}): Promise<InvoiceListResponse> {
+        const query = new URLSearchParams(params).toString();
+        return this.request<InvoiceListResponse>(`/invoices?${query}`);
+    }
+
+    async getInvoice(id: string): Promise<Invoice> {
+        return this.request<Invoice>(`/invoices/${id}`);
+    }
+
+    async markInvoicePaid(id: string, paymentMethod?: string): Promise<MarkPaidResponse> {
+        return this.request<MarkPaidResponse>(`/invoices/${id}/mark-paid`, {
+            method: 'POST',
+            body: JSON.stringify({ payment_method: paymentMethod }),
+        });
+    }
+
+    async deleteInvoice(id: string): Promise<void> {
+        return this.request<void>(`/invoices/${id}`, {
+            method: 'DELETE',
+        });
     }
 }
 
@@ -325,12 +368,82 @@ export interface QuoteCreate {
     notes?: string;
 }
 
+export interface QuoteUpdate {
+    client_name?: string;
+    client_email?: string;
+    client_phone?: string;
+    client_company?: string;
+    currency?: string;
+    notes?: string;
+    valid_until?: string;
+    discount?: number;
+    discount_type?: string;
+    discount_value?: number;
+    tax?: number;
+    language?: string;
+    items?: QuoteItemCreate[];
+    status?: string;
+}
+
 export interface QuoteListResponse {
     items: Quote[];
     total: number;
     page: number;
     size: number;
     pages: number;
+}
+
+// Invoice interfaces
+export interface InvoiceItem {
+    description: string;
+    quantity: number;
+    unit_price: number;
+}
+
+export interface InvoiceContact {
+    id: string;
+    name: string;
+    email: string;
+    phone?: string;
+    company?: string;
+}
+
+export interface Invoice {
+    id: string;
+    invoice_number: string;
+    quote_id?: string;
+    contact_id: string;
+    contact?: InvoiceContact;
+    items: InvoiceItem[];
+    subtotal: number;
+    tax_rate: number;
+    tax: number;
+    total: number;
+    status: 'pending' | 'paid' | 'overdue' | 'cancelled';
+    due_date: string;
+    paid_at?: string;
+    payment_method?: string;
+    notes?: string;
+    pdf_url?: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface InvoiceListResponse {
+    items: Invoice[];
+    total: number;
+    page: number;
+    size: number;
+    pages: number;
+}
+
+export interface MarkPaidResponse {
+    paid_invoice: Invoice;
+    next_invoice: {
+        id: string;
+        invoice_number: string;
+        due_date: string;
+    };
 }
 
 export const api = new ApiClient();

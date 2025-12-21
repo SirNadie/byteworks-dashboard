@@ -127,6 +127,10 @@ export default function Sidebar({ isOpen, onClose, isCollapsed = false, onToggle
                         <span className="material-symbols-outlined">receipt_long</span>
                         {!isCollapsed && <span className="text-sm font-medium">Invoices</span>}
                     </Link>
+                    <Link href="/clients" className={getLinkClass('/clients')} onClick={() => onClose()} title="Clients">
+                        <span className="material-symbols-outlined">group</span>
+                        {!isCollapsed && <span className="text-sm font-medium">Clients</span>}
+                    </Link>
                 </nav>
 
                 {/* User Dropdown Section */}

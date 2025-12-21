@@ -61,6 +61,15 @@ class QuoteCreate(QuoteBase):
     language: str = Field(default="en", max_length=2)
 
 
+class QuoteItemUpdate(BaseModel):
+    """Schema for updating a quote item."""
+    service_id: Optional[UUID] = None
+    description: str = Field(..., min_length=1, max_length=500)
+    quantity: int = Field(default=1, ge=1)
+    unit_price: float = Field(..., ge=0)
+    sort_order: int = 0
+
+
 class QuoteUpdate(BaseModel):
     """Schema for updating a quote."""
     client_name: Optional[str] = Field(None, min_length=2, max_length=100)
@@ -71,7 +80,11 @@ class QuoteUpdate(BaseModel):
     notes: Optional[str] = None
     valid_until: Optional[date] = None
     discount: Optional[float] = Field(None, ge=0)
+    discount_type: Optional[str] = Field(None, max_length=20)
+    discount_value: Optional[float] = Field(None, ge=0)
     tax: Optional[float] = Field(None, ge=0)
+    language: Optional[str] = Field(None, max_length=2)
+    items: Optional[List[QuoteItemUpdate]] = None
     status: Optional[QuoteStatus] = None
 
 

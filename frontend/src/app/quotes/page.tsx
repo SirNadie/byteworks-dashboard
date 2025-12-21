@@ -16,6 +16,7 @@ const STATUS_STYLES: Record<string, string> = {
     pending: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
     sent: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
     accepted: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+    converted: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
     rejected: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
     expired: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
 };
@@ -24,7 +25,7 @@ const STATUS_STYLES: Record<string, string> = {
 const STATUS_DISPLAY: Record<string, string> = {
     draft: 'pending',
     sent: 'sent',
-    accepted: 'accepted',
+    accepted: 'converted',
     rejected: 'rejected',
     expired: 'expired',
 };
@@ -305,18 +306,6 @@ export default function QuotesPage() {
                                                 >
                                                     <span className="material-symbols-outlined text-sm">visibility</span>
                                                 </Link>
-                                                <button
-                                                    className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                                                    title="Send Quote"
-                                                >
-                                                    <span className="material-symbols-outlined text-sm">send</span>
-                                                </button>
-                                                <button
-                                                    className="p-2 text-gray-400 hover:text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
-                                                    title="Download PDF"
-                                                >
-                                                    <span className="material-symbols-outlined text-sm">download</span>
-                                                </button>
                                             </div>
                                         </td>
                                     </tr>

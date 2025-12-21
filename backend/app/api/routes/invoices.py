@@ -38,7 +38,9 @@ async def list_invoices(
     contact_id: Optional[UUID] = None
 ):
     """List all invoices with pagination."""
-    query = select(Invoice)
+    from sqlalchemy.orm import selectinload
+    
+    query = select(Invoice).options(selectinload(Invoice.contact))
     count_query = select(func.count(Invoice.id))
     
     if status:
@@ -59,8 +61,22 @@ async def list_invoices(
     invoices = result.scalars().all()
     pages = (total + size - 1) // size
     
+    # Build response with contact info
+    invoice_responses = []
+    for inv in invoices:
+        inv_dict = InvoiceResponse.model_validate(inv).model_dump()
+        if inv.contact:
+            inv_dict['contact'] = {
+                'id': str(inv.contact.id),
+                'name': inv.contact.name,
+                'email': inv.contact.email,
+                'phone': inv.contact.phone,
+                'company': inv.contact.company,
+            }
+        invoice_responses.append(inv_dict)
+    
     return InvoiceListResponse(
-        items=[InvoiceResponse.model_validate(i) for i in invoices],
+        items=invoice_responses,
         total=total, page=page, size=size, pages=pages
     )
 
@@ -160,20 +176,68 @@ async def update_invoice(invoice_id: UUID, data: InvoiceUpdate, db: DbSession, c
     return InvoiceResponse.model_validate(invoice)
 
 
-@router.post("/{invoice_id}/mark-paid", response_model=InvoiceResponse)
+@router.post("/{invoice_id}/mark-paid")
 async def mark_invoice_paid(invoice_id: UUID, data: InvoiceMarkPaid, db: DbSession, current_user: CurrentUser):
-    """Mark an invoice as paid."""
+    """
+    Mark an invoice as paid and generate the next month's invoice.
+    Returns the paid invoice and the new invoice info.
+    """
+    from datetime import date, timedelta
+    
     result = await db.execute(select(Invoice).where(Invoice.id == invoice_id))
     invoice = result.scalar_one_or_none()
     
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
     
+    # Mark as paid
     invoice.mark_as_paid(data.payment_method)
     await db.flush()
     await db.refresh(invoice)
     
-    return InvoiceResponse.model_validate(invoice)
+    # Generate next month's invoice
+    next_invoice_number = await generate_invoice_number(db)
+    today = date.today()
+    
+    # Due date: ~1 month from today (30 days) + 3 days grace period
+    next_due_date = today + timedelta(days=33)
+    
+    next_invoice = Invoice(
+        invoice_number=next_invoice_number,
+        contact_id=invoice.contact_id,
+        items=invoice.items,  # Same items as current invoice
+        subtotal=invoice.subtotal,
+        tax_rate=invoice.tax_rate,
+        tax=invoice.tax,
+        total=invoice.total,
+        status=InvoiceStatus.PENDING,
+        due_date=next_due_date,
+        notes=invoice.notes,
+    )
+    db.add(next_invoice)
+    await db.flush()
+    await db.refresh(next_invoice)
+    
+    print(f"✅ Created next month invoice: {next_invoice_number} (due: {next_due_date})")
+    
+    # Build response manually to avoid lazy loading contact
+    paid_invoice_data = {
+        "id": str(invoice.id),
+        "invoice_number": invoice.invoice_number,
+        "contact_id": str(invoice.contact_id),
+        "total": float(invoice.total),
+        "status": invoice.status.value,
+        "paid_at": invoice.paid_at.isoformat() if invoice.paid_at else None,
+    }
+    
+    return {
+        "paid_invoice": paid_invoice_data,
+        "next_invoice": {
+            "id": str(next_invoice.id),
+            "invoice_number": next_invoice.invoice_number,
+            "due_date": str(next_invoice.due_date),
+        }
+    }
 
 
 @router.delete("/{invoice_id}", status_code=status.HTTP_204_NO_CONTENT)
