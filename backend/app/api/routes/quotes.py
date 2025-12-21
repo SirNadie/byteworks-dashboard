@@ -432,6 +432,8 @@ async def reject_quote(
     contact_id = quote.contact_id
     quote_number = quote.quote_number
     client_name = quote.client_name
+    client_email = quote.client_email
+    notion_page_id = quote.notion_page_id
     
     # Delete the quote directly using SQL (avoids cascade relation loading)
     await db.execute(
@@ -456,6 +458,10 @@ async def reject_quote(
     await db.flush()
     
     print(f"❌ Quote {quote_number} for {client_name} was rejected and all data deleted")
+
+    # Delete from Notion
+    from ...services.notifications import delete_quote_and_lead_in_notion
+    await delete_quote_and_lead_in_notion(notion_page_id, client_email)
 
 
 @router.delete("/{quote_id}", status_code=status.HTTP_204_NO_CONTENT)

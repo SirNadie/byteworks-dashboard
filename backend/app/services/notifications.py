@@ -29,6 +29,7 @@ from .notion import (
     create_quote_in_notion,
     create_invoice_in_notion,
     create_payment_in_notion,
+    delete_notion_page,
     notion_client,
 )
 
@@ -403,4 +404,41 @@ async def send_client_drive_folder(
     except Exception as e:
         print(f"❌ Failed to send Drive link email to client: {e}")
     
+    return result
+
+
+async def delete_quote_and_lead_in_notion(
+    quote_notion_id: Optional[str] = None,
+    client_email: Optional[str] = None
+) -> dict:
+    """
+    Delete (archive) quote and lead in Notion.
+    """
+    result = {
+        "quote_deleted": False,
+        "lead_deleted": False
+    }
+    
+    # 1. Delete Quote
+    if quote_notion_id:
+        try:
+            result["quote_deleted"] = await delete_notion_page(quote_notion_id)
+            if result["quote_deleted"]:
+                print(f"🗑️ Deleted quote in Notion (ID: {quote_notion_id})")
+        except Exception as e:
+            print(f"❌ Failed to delete quote in Notion: {e}")
+            
+    # 2. Delete Lead (by email) because we don't store Lead Notion ID in DB yet
+    if client_email:
+        try:
+            lead_notion_id = await notion_client.find_lead_by_email(client_email)
+            if lead_notion_id:
+                result["lead_deleted"] = await delete_notion_page(lead_notion_id)
+                if result["lead_deleted"]:
+                    print(f"🗑️ Deleted lead in Notion (ID: {lead_notion_id})")
+            else:
+                print(f"⚠️ Lead not found in Notion for email: {client_email}")
+        except Exception as e:
+            print(f"❌ Failed to delete lead in Notion: {e}")
+            
     return result

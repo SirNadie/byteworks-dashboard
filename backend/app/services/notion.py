@@ -62,6 +62,12 @@ class NotionClient:
             print(f"❌ Notion request failed: {e}")
             return None
     
+    async def delete_page(self, page_id: str) -> bool:
+        """Archive (delete) a page in Notion."""
+        data = {"archived": True}
+        result = await self._request("PATCH", f"/pages/{page_id}", data)
+        return result is not None
+    
     # ==================== HELPER METHODS ====================
     
     def _text_property(self, value: str) -> Dict:
@@ -144,6 +150,22 @@ class NotionClient:
             page_id = result.get("id")
             print(f"✅ Created lead in Notion: {name} (ID: {page_id})")
             return page_id
+        return None
+    
+    async def find_lead_by_email(self, email: str) -> Optional[str]:
+        """Find a lead page ID by email."""
+        data = {
+            "filter": {
+                "property": "Email",
+                "email": {
+                    "equals": email
+                }
+            }
+        }
+        result = await self._request("POST", f"/databases/{self.leads_db_id}/query", data)
+        
+        if result and result.get("results"):
+            return result["results"][0]["id"]
         return None
     
     async def update_lead_status(self, page_id: str, status: str) -> bool:
@@ -517,3 +539,8 @@ async def create_payment_in_notion(
         invoice_number=invoice_number,
         crm_id=crm_id
     )
+
+
+async def delete_notion_page(page_id: str) -> bool:
+    """Convenience function to delete (archive) a page."""
+    return await notion_client.delete_page(page_id)

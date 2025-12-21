@@ -141,8 +141,12 @@ export default function QuoteDetailPage() {
             setQuote(updatedQuote);
 
             // Construct Link
-            const baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api').replace('/api', '');
-            const link = `${baseUrl}/api/public/quote/${quoteId}/pdf`;
+            // NEXT_PUBLIC_API_URL typically ends with /api (e.g. https://domain.com/api)
+            const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+            // Remove trailing slash if present
+            const cleanApiBase = apiBase.endsWith('/') ? apiBase.slice(0, -1) : apiBase;
+            // Public routes are at /api/public, so if apiBase is .../api, we append /public
+            const link = `${cleanApiBase}/public/quote/${quoteId}/pdf`;
 
             setGeneratedLink(link);
             setShowLinkModal(true);
