@@ -47,15 +47,23 @@ TRANSLATIONS = {
             "quote": [
                 "Payment of the first month is required to start the service.",
                 "This quote is valid for the period specified above.",
+                "Services are billed on a monthly or yearly basis unless otherwise specified.",
                 "Prices are subject to change with 30 days prior notice.",
+                "Cancellation requires 15 days written notice before the next billing cycle.",
+                "Late payments beyond 5 days may result in temporary service suspension.",
+                "You retain ownership of your content (text, images, customer data). ByteWorks retains rights to the platform code and architecture.",
+                "Acceptance of this quote constitutes agreement to ByteWorks Agency's full Terms & Conditions available at byteworksagency.com/terms.",
+                "ByteWorks Agency's total liability is limited to the amount paid for services in the current billing period.",
             ],
             "invoice": [
                 "Payment is due by the date specified above.",
-                "Late payments may incur a 5% monthly late fee.",
+                "Late payments may incur a 5% monthly late fee after 7 days.",
+                "For questions about this invoice, please contact us at the email above.",
             ],
             "receipt": [
                 "This is a computer generated receipt.",
                 "Thank you for your prompt payment.",
+                "Please retain this document for your records.",
             ]
         }
     },
@@ -71,16 +79,25 @@ TRANSLATIONS = {
         "terms_title": "Términos y Condiciones",
         "terms": {
             "quote": [
-                "Se requiere el pago del primer mes para iniciar.",
-                "Esta cotización es válida por el período indicado.",
+                "Se requiere el pago del primer mes para iniciar el servicio.",
+                "Esta cotización es válida por el período indicado arriba.",
+                "Los servicios se facturan mensual o anualmente salvo indicación contraria.",
+                "Los precios están sujetos a cambios con 30 días de aviso previo.",
+                "La cancelación requiere aviso por escrito con 15 días antes del próximo ciclo.",
+                "Pagos atrasados más de 5 días pueden resultar en suspensión temporal del servicio.",
+                "Usted conserva la propiedad de su contenido. ByteWorks retiene los derechos del código y arquitectura.",
+                "La aceptación de esta cotización constituye acuerdo con los Términos y Condiciones de ByteWorks Agency en byteworksagency.com/terms.",
+                "La responsabilidad total de ByteWorks Agency está limitada al monto pagado en el período de facturación actual.",
             ],
             "invoice": [
-                "El pago vence en la fecha indicada.",
-                "Pagos tardíos pueden generar recargo del 5%.",
+                "El pago vence en la fecha indicada arriba.",
+                "Pagos tardíos pueden generar un recargo del 5% mensual después de 7 días.",
+                "Para consultas sobre esta factura, contáctenos al correo indicado.",
             ],
             "receipt": [
                 "Este es un recibo generado electrónicamente.",
                 "Gracias por su pronto pago.",
+                "Por favor conserve este documento para sus registros.",
             ]
         }
     }

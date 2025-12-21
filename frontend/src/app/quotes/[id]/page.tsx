@@ -789,26 +789,11 @@ export default function QuoteDetailPage() {
                             </div>
                             <div>
                                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Quote Sent!</h3>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">Share this link with your client.</p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">The quote has been processed successfully.</p>
                             </div>
                         </div>
 
                         <div className="space-y-4">
-                            <div className="flex items-center gap-2 bg-gray-50 dark:bg-border-dark/50 p-3 rounded-lg border border-gray-200 dark:border-border-dark">
-                                <code className="flex-1 text-sm text-gray-600 dark:text-gray-300 truncate font-mono">
-                                    {generatedLink}
-                                </code>
-                                <button
-                                    onClick={() => {
-                                        navigator.clipboard.writeText(generatedLink);
-                                        toast.success('Link copied!');
-                                    }}
-                                    className="p-2 hover:bg-gray-200 dark:hover:bg-border-dark rounded-md transition-colors text-gray-500"
-                                    title="Copy Link"
-                                >
-                                    <span className="material-symbols-outlined text-lg">content_copy</span>
-                                </button>
-                            </div>
 
                             <a
                                 href={generatedLink}
