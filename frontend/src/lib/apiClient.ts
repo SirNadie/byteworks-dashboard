@@ -162,7 +162,11 @@ class ApiClient {
             const data = await response.json();
 
             if (!response.ok) {
-                throw new Error(data.detail || 'Request failed');
+                const detail = data.detail;
+                const errorMessage = typeof detail === 'object'
+                    ? JSON.stringify(detail)
+                    : (detail || 'Request failed');
+                throw new Error(errorMessage);
             }
 
             return data as T;
@@ -199,7 +203,7 @@ class ApiClient {
     }
 
     async createContact(data: ContactCreate) {
-        return this.request<Contact>('/contacts/', {
+        return this.request<Contact>('/contacts', {
             method: 'POST',
             body: JSON.stringify(data),
         });

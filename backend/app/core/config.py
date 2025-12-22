@@ -24,6 +24,10 @@ class Settings(BaseSettings):
     api_prefix: str = "/api"
     public_api_url: str = "http://localhost:8000"  # Override in production!
     
+    def model_post_init(self, __context):
+       super().model_post_init(__context)
+       print(f"🔧 Loaded PUBLIC_API_URL: {self.public_api_url}")
+    
     # Database
     database_url: str = "postgresql+asyncpg://user:password@localhost/byteworks"
     

@@ -18,7 +18,7 @@ export default function ContactForm({ isOpen, onClose, onSubmit, initialData, is
         phone: '',
         company: '',
         source: 'web_form',
-        status: 'new',
+        status: 'NEW',
         notes: ''
     });
 
@@ -40,7 +40,7 @@ export default function ContactForm({ isOpen, onClose, onSubmit, initialData, is
                 phone: '',
                 company: '',
                 source: 'web_form',
-                status: 'new',
+                status: 'NEW',
                 notes: ''
             });
         }
@@ -163,11 +163,11 @@ export default function ContactForm({ isOpen, onClose, onSubmit, initialData, is
                                         value={formData.status}
                                         onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                                     >
-                                        <option value="new">New</option>
-                                        <option value="contacted">Contacted</option>
-                                        <option value="qualified">Qualified</option>
-                                        <option value="converted">Converted</option>
-                                        <option value="lost">Lost</option>
+                                        <option value="NEW">New</option>
+                                        <option value="CONTACTED">Contacted</option>
+                                        <option value="QUALIFIED">Qualified</option>
+                                        <option value="CONVERTED">Converted</option>
+                                        <option value="LOST">Lost</option>
                                     </select>
                                 </div>
                             </div>

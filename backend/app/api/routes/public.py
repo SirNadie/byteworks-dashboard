@@ -15,6 +15,7 @@ from ...models.invoice import Invoice
 from ...core.config import settings
 from ...core.rate_limiter import limiter
 from ...core.security import verify_url_signature
+from ...core.database import async_session_maker
 from ...services.pdf_generator import generate_quote_pdf, generate_invoice_pdf, generate_receipt_pdf
 
 

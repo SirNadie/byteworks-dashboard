@@ -246,6 +246,26 @@ async def create_contact(
     db.add(contact)
     await db.flush()
     await db.refresh(contact)
+
+    # Sync to Notion (Leads DB)
+    from ...services.notion import create_lead_in_notion
+    try:
+        # Determine source string
+        source_val = contact_data.source.value if hasattr(contact_data.source, 'value') else str(contact_data.source)
+        
+        await create_lead_in_notion(
+            name=contact.name,
+            email=contact.email,
+            phone=contact.phone,
+            company=contact.company,
+            message=contact.notes,
+            source=source_val or "Dashboard",
+            contact_method="Email", # Default for dashboard creation
+            crm_id=None # We typically don't expose internal UUIDs to Notion unless needed
+        )
+    except Exception as e:
+        # Don't fail the request if Notion sync fails
+        print(f"⚠️ Failed to sync new contact to Notion: {e}")
     
     return ContactResponse.model_validate(contact)
 
