@@ -36,3 +36,6 @@ pytest-asyncio>=0.23.0
 
 # PDF Generation (pure Python, Vercel compatible)
 reportlab>=4.0.0
+
+# Rate Limiting
+slowapi>=0.1.9

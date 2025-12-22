@@ -140,6 +140,40 @@ async def create_invoice_from_quote(data: InvoiceFromQuote, db: DbSession, curre
     return InvoiceResponse.model_validate(invoice)
 
 
+@router.get("/{invoice_id}/public-link")
+async def get_invoice_public_link(
+    invoice_id: UUID,
+    db: DbSession,
+    current_user: CurrentUser,
+):
+    """
+    Generate a signed public link for the invoice PDF.
+    Valid for 7 days by default.
+    """
+    result = await db.execute(
+        select(Invoice).where(Invoice.id == invoice_id)
+    )
+    invoice = result.scalar_one_or_none()
+    
+    if not invoice:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Invoice not found"
+        )
+    
+    # Generate signed params
+    from ...core.security import create_signed_query_params
+    
+    path = f"/api/public/invoice/{invoice_id}/pdf"
+    signed_query = create_signed_query_params(path)
+    
+    # Construct full URL
+    base_url = settings.public_api_url.rstrip("/")
+    full_url = f"{base_url}{path}?{signed_query}"
+    
+    return {"url": full_url}
+
+
 @router.get("/{invoice_id}", response_model=InvoiceResponse)
 async def get_invoice(invoice_id: UUID, db: DbSession, current_user: CurrentUser):
     """Get an invoice by ID."""
@@ -222,9 +256,12 @@ async def mark_invoice_paid(invoice_id: UUID, data: InvoiceMarkPaid, db: DbSessi
         else:
             print(f"⚠️ Invoice {invoice.invoice_number} has NO Notion ID - status won't update in Notion")
         
-        # Generate generic link structure
-        base_url = settings.public_api_url
-        receipt_link = f"{base_url}/api/public/receipt/{invoice.id}/pdf"
+        # Generate generic link structure (Signed, 30 days)
+        from ...core.security import create_signed_query_params
+        base_url = settings.public_api_url.rstrip("/")
+        path = f"/api/public/receipt/{invoice.id}/pdf"
+        signed_query = create_signed_query_params(path, valid_for_minutes=43200)
+        receipt_link = f"{base_url}{path}?{signed_query}"
         
         payment_result = await handle_payment_received(
             invoice_number=invoice.invoice_number,
@@ -275,9 +312,12 @@ async def mark_invoice_paid(invoice_id: UUID, data: InvoiceMarkPaid, db: DbSessi
     
     # Create the new invoice in Notion
     try:
-        # Generate public PDF link for the invoice
-        base_url = settings.public_api_url
-        next_invoice_pdf_link = f"{base_url}/api/public/invoice/{next_invoice.id}/pdf"
+        # Generate public PDF link for the invoice (Signed, 30 days)
+        base_url = settings.public_api_url.rstrip("/")
+        path = f"/api/public/invoice/{next_invoice.id}/pdf"
+        # Note: create_signed_query_params imported above in this function
+        signed_query = create_signed_query_params(path, valid_for_minutes=43200)
+        next_invoice_pdf_link = f"{base_url}{path}?{signed_query}"
 
         from ...services.notion import create_invoice_in_notion
         next_invoice_notion_id = await create_invoice_in_notion(

@@ -89,6 +89,41 @@ async def get_quote(
     return QuoteResponse.model_validate(quote)
 
 
+@router.get("/{quote_id}/public-link")
+async def get_quote_public_link(
+    quote_id: UUID,
+    db: DbSession,
+    current_user: CurrentUser,
+):
+    """
+    Generate a signed public link for the quote PDF.
+    Valid for 7 days by default.
+    """
+    result = await db.execute(
+        select(Quote).where(Quote.id == quote_id)
+    )
+    quote = result.scalar_one_or_none()
+    
+    if not quote:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Quote not found"
+        )
+    
+    # Generate signed params
+    from ...core.security import create_signed_query_params
+    
+    path = f"/api/public/quote/{quote_id}/pdf"
+    signed_query = create_signed_query_params(path)
+    
+    # Construct full URL
+    # Use settings.public_api_url which should point to the domain (e.g. https://api.byteworksagency.com)
+    base_url = settings.public_api_url.rstrip("/")
+    full_url = f"{base_url}{path}?{signed_query}"
+    
+    return {"url": full_url}
+
+
 @router.post("", response_model=QuoteResponse, status_code=status.HTTP_201_CREATED)
 async def create_quote(
     quote_data: QuoteCreate,
@@ -249,10 +284,13 @@ async def send_quote(
     
     # Send Notion + Email notification (replacing Discord)
     from ...services.notifications import notify_new_quote
+    from ...core.security import create_signed_query_params
     
-    # Generate public PDF link
-    base_url = settings.public_api_url
-    pdf_link = f"{base_url}/api/public/quote/{quote.id}/pdf"
+    # Generate public PDF link (Signed, valid for 30 days)
+    base_url = settings.public_api_url.rstrip("/")
+    path = f"/api/public/quote/{quote.id}/pdf"
+    signed_query = create_signed_query_params(path, valid_for_minutes=43200) # 30 days
+    pdf_link = f"{base_url}{path}?{signed_query}"
     
     try:
         notification_result = await notify_new_quote(
@@ -365,10 +403,12 @@ async def convert_quote(
     await db.flush()
     await db.refresh(invoice)
     
-    # Generate public PDF link for the invoice
-    # Generate public PDF link for the invoice
-    base_url = settings.public_api_url
-    invoice_pdf_link = f"{base_url}/api/public/invoice/{invoice.id}/pdf"
+    # Generate public PDF link for the invoice (Signed, 30 days)
+    from ...core.security import create_signed_query_params
+    base_url = settings.public_api_url.rstrip("/")
+    path = f"/api/public/invoice/{invoice.id}/pdf"
+    signed_query = create_signed_query_params(path, valid_for_minutes=43200) # 30 days
+    invoice_pdf_link = f"{base_url}{path}?{signed_query}"
     
     # Handle quote-to-invoice conversion in Notion + Email
     from ...services.notifications import handle_quote_to_invoice_conversion

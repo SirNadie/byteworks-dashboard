@@ -164,10 +164,14 @@ export default function InvoicesPage() {
     };
 
     // View Invoice PDF (Backend Link)
-    const viewInvoicePDF = (invoice: Invoice) => {
-        const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
-        const url = `${API_BASE}/public/invoice/${invoice.id}/pdf`;
-        window.open(url, '_blank');
+    const viewInvoicePDF = async (invoice: Invoice) => {
+        try {
+            const { url } = await api.getInvoicePublicLink(invoice.id);
+            window.open(url, '_blank');
+        } catch (error) {
+            console.error('Failed to get invoice PDF link', error);
+            toast.error('Failed to open PDF');
+        }
     };
 
     // Calculate stats

@@ -140,15 +140,9 @@ export default function QuoteDetailPage() {
             const updatedQuote = await api.sendQuote(quoteId);
             setQuote(updatedQuote);
 
-            // Construct Link
-            // NEXT_PUBLIC_API_URL typically ends with /api (e.g. https://domain.com/api)
-            const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
-            // Remove trailing slash if present
-            const cleanApiBase = apiBase.endsWith('/') ? apiBase.slice(0, -1) : apiBase;
-            // Public routes are at /api/public, so if apiBase is .../api, we append /public
-            const link = `${cleanApiBase}/public/quote/${quoteId}/pdf`;
-
-            setGeneratedLink(link);
+            // Fetch signed link
+            const { url } = await api.getQuotePublicLink(quoteId);
+            setGeneratedLink(url);
             setShowLinkModal(true);
 
             toast.success('Quote sent successfully!');

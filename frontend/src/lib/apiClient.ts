@@ -291,6 +291,14 @@ class ApiClient {
         });
     }
 
+    async getQuotePublicLink(id: string): Promise<{ url: string }> {
+        return this.request<{ url: string }>(`/quotes/${id}/public-link`);
+    }
+
+    async getInvoicePublicLink(id: string): Promise<{ url: string }> {
+        return this.request<{ url: string }>(`/invoices/${id}/public-link`);
+    }
+
     async getInvoices(params: Record<string, string> = {}): Promise<InvoiceListResponse> {
         const query = new URLSearchParams(params).toString();
         return this.request<InvoiceListResponse>(`/invoices?${query}`);

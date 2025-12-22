@@ -38,6 +38,17 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# Rate Limiting Setup
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from .core.rate_limiter import limiter
+from .core.config import settings
+
+# Configure the shared limiter with defaults
+limiter.default_limits = [settings.rate_limit_default]
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 # Configure CORS - Allow all origins for API access
 app.add_middleware(
     CORSMiddleware,

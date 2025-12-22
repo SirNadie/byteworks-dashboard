@@ -65,6 +65,10 @@ class Settings(BaseSettings):
     # Notification Channel: "email" or "whatsapp" (future)
     notification_channel: str = "email"
     
+    # Rate Limiting
+    rate_limit_default: str = "100/minute"
+    rate_limit_public: str = "10/minute"
+    
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # Notion
