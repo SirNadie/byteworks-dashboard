@@ -103,8 +103,9 @@ class ApiClient {
         const headers: HeadersInit = {
             'Content-Type': 'application/json',
         };
-        if (this.token) {
-            headers['Authorization'] = `Bearer ${this.token}`;
+        const token = this.getToken(); // Use getToken() to ensure sync with localStorage
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
         }
         return headers;
     }
@@ -123,6 +124,13 @@ class ApiClient {
     }
 
     getToken() {
+        // Always sync with localStorage to survive hot reloads
+        if (typeof window !== 'undefined') {
+            const storedToken = localStorage.getItem('token');
+            if (storedToken !== this.token) {
+                this.token = storedToken;
+            }
+        }
         return this.token;
     }
 

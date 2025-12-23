@@ -5,26 +5,30 @@ ByteWorks Dashboard - FastAPI Application Entry Point
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, FileResponse
 
 from .core.config import settings
 from .core.database import init_db
+from .core.logger import get_app_logger
 from .api.routes import api_router
+
+# Initialize logger
+logger = get_app_logger()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan handler for startup/shutdown events."""
     # Startup: Initialize database tables
-    print("🚀 Starting ByteWorks Dashboard...")
+    logger.info("Starting ByteWorks Dashboard...")
     await init_db()
-    print("✅ Database initialized")
+    logger.info("Database initialized")
     yield
     # Shutdown
-    print("👋 Shutting down...")
+    logger.info("Shutting down...")
 
 
 # Create FastAPI application

@@ -2,7 +2,7 @@
 Quote routes for CRUD operations on quotes/estimates.
 """
 
-from datetime import datetime, timezone, date, timedelta
+from datetime import datetime, timezone, date
 from typing import Optional
 from uuid import UUID
 
@@ -17,7 +17,6 @@ from ...schemas.quote import (
     QuoteUpdate,
     QuoteResponse,
     QuoteListResponse,
-    QuoteItemResponse,
 )
 from ...core.config import settings
 
@@ -392,7 +391,6 @@ async def convert_quote(
     client_email = quote.client_email
     total = quote.total
     currency = quote.currency
-    currency_symbol = "$" if currency == "USD" else "TT$"
     quote_notion_page_id = quote.notion_page_id  # Capture for Notion update
     
     # Delete the Quote using direct SQL to avoid cascade issues
@@ -543,8 +541,7 @@ async def process_quote_reminders(
     - Sends reminder at day 7 for sent quotes
     - Marks quotes as expired after valid_until date passes
     """
-    from datetime import timedelta, date
-    
+    # date and timedelta already imported at file top
     today = date.today()
     processed = {"reminders_sent": 0, "expired": 0}
     

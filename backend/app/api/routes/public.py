@@ -73,7 +73,7 @@ async def download_quote_pdf(
                 created_at=str(quote.created_at) if quote.created_at else None,
                 language=lang
             )
-        except ImportError as e:
+        except ImportError:
             raise HTTPException(
                 status_code=503,
                 detail="PDF generation is not available on this server. Please download the PDF from the dashboard."
@@ -162,7 +162,7 @@ async def download_invoice_pdf(
                 paid_at=str(invoice.paid_at) if invoice.paid_at else None,
                 language=lang
             )
-        except ImportError as e:
+        except ImportError:
             raise HTTPException(
                 status_code=503,
                 detail="PDF generation is not available on this server. Please download the PDF from the dashboard."
@@ -249,7 +249,7 @@ async def download_receipt_pdf(
                 notes=invoice.notes,
                 language=lang
             )
-        except ImportError as e:
+        except ImportError:
             raise HTTPException(
                 status_code=503,
                 detail="PDF generation is not available on this server. Please download the PDF from the dashboard."
@@ -307,7 +307,7 @@ async def download_receipt_pdf(
                 notes=invoice.notes,
                 language=lang
             )
-        except ImportError as e:
+        except ImportError:
             raise HTTPException(
                 status_code=503,
                 detail="PDF generation is not available on this server. Please download the PDF from the dashboard."

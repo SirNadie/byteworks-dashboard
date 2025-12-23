@@ -5,7 +5,6 @@ Pydantic schemas for Quote API validation.
 from datetime import datetime, date
 from typing import Optional, List
 from uuid import UUID
-from decimal import Decimal
 
 from pydantic import BaseModel, Field
 

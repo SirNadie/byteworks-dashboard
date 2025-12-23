@@ -4,7 +4,6 @@ Invoice management routes (CRUD operations).
 
 from typing import Optional
 from uuid import UUID
-from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException, status, Query
 from sqlalchemy import select, func

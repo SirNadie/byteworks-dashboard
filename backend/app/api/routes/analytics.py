@@ -5,12 +5,12 @@ Analytics routes for dashboard KPIs and statistics.
 from datetime import datetime, timedelta, timezone, date
 from decimal import Decimal
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter
 from pydantic import BaseModel
 from sqlalchemy import select, func, and_
 
 from ..deps import DbSession, CurrentUser
-from ...models.contact import Contact, ContactStatus
+from ...models.contact import Contact
 from ...models.quote import Quote, QuoteStatus
 from ...models.invoice import Invoice, InvoiceStatus
 

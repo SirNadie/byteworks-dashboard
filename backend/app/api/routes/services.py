@@ -5,7 +5,7 @@ Service routes for CRUD operations on the service catalog.
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import select, func
 
 from ..deps import DbSession, CurrentUser

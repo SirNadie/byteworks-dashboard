@@ -12,8 +12,8 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
-from reportlab.lib.enums import TA_LEFT, TA_RIGHT, TA_CENTER
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib.enums import TA_RIGHT, TA_CENTER
 
 # --- Configuration ---
 
@@ -221,11 +221,6 @@ async def _generate_pdf(
     elements = []
     
     # --- Header Section ---
-    logo_path = _get_logo_path()
-    
-    # Company info and document title in header table
-    header_data = []
-    
     # Left side: Logo + Company name
     company_info_text = f"""
     <b>{COMPANY_INFO['name']}</b><br/>

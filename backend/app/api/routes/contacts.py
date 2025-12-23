@@ -5,10 +5,11 @@ Contact routes for CRUD operations on clients and leads.
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, Request, status
 from sqlalchemy import select, func
 
 from ..deps import DbSession, CurrentUser
+from ...core.rate_limiter import limiter
 from ...models.contact import Contact, ContactStatus, ContactSource
 from ...schemas.contact import (
     ContactCreate,
@@ -122,9 +123,11 @@ async def options_public_contact():
     )
 
 @router.post("/public", response_model=ContactResponse, status_code=status.HTTP_201_CREATED)
+@limiter.limit("5/minute")
 async def create_public_contact(
     contact_data: PublicContactRequest,
     db: DbSession,
+    request: Request,
 ):
     """
     Create a new contact from public website (honeypot protected).
